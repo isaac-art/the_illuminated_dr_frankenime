@@ -1,0 +1,5 @@
+# some torch version
+numpy
+noise
+safetensors
+miditok
