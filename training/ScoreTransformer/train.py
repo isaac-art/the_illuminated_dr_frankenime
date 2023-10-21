@@ -1,7 +1,9 @@
 import torch
 import numpy as np
 from tqdm import tqdm
+import torch.nn as nn
 import torch.optim as optim
+import torch.nn.init as init
 import torch.nn.functional as F
 from safetensors.torch import save_file
 from torch.utils.data import random_split
@@ -33,18 +35,15 @@ class MIDIDataset(Dataset):
         return inputs, targets
 
 
-
 device = "mps"
 d_model = 512
-batch_size = 8
+batch_size = 16
 num_steps = 250000
-learning_rate = 0.001
-seq_len = 2048 -1 # -1 as we are predicting next token
-midi_dataset = MIDIDataset('datasets/lupker_maestro_midi.npy')
+learning_rate = 1e-4
+max_seq_len = 256 
+midi_dataset = MIDIDataset(f'datasets/lupker_maestro_midi_{max_seq_len}.npy')
 vocab_size = midi_dataset.vocab_size
-
-
-print("Vocab size:", vocab_size)
+print("Vocab size:", vocab_size) #245
 
 total_size = len(midi_dataset)
 train_size = int(0.8 * total_size)  # 80% for training
@@ -58,12 +57,12 @@ def collate_fn(batch):
     padded_targets = pad_sequence(targets, batch_first=True, padding_value=0)
     return padded_inputs, padded_targets
 
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
-val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, drop_last=True)
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn, drop_last=True)
 
 
 print("Creating model...")
-model = ScoreTransformer(vocab_size=vocab_size, max_len=seq_len, dim_feedforward=seq_len).to(device)
+model = ScoreTransformer(num_tokens=vocab_size, max_seq_len=max_seq_len).to(device)
 print(model)
 p_()
 
@@ -75,12 +74,7 @@ criterion = torch.nn.CrossEntropyLoss()
 
 print("Training...")
 current_step = 0
-num_steps = 2000
-
 # PAPER: The model plateaued at a loss of ~1.7 during training after approximately 250,000 steps.
-memory = torch.zeros(seq_len, batch_size, d_model).to(device)  # Just Zeros as we are only training decoder, but need to pass something to torch transofmrerdecoderlayer 
-
-
 with tqdm(total=num_steps, desc="Training", position=0) as pbar:
     current_step = 0
     while current_step < num_steps:
@@ -90,11 +84,8 @@ with tqdm(total=num_steps, desc="Training", position=0) as pbar:
 
             inputs, targets = inputs.to(device), targets.to(device)
 
-            tgt_mask = (torch.triu(torch.ones(seq_len, seq_len)) == 1).transpose(0, 1)
-            tgt_mask = tgt_mask.float().masked_fill(tgt_mask == 0, float('-inf')).masked_fill(tgt_mask == 1, float(0.0)).to(device)
-
             optimizer.zero_grad()
-            output = model(inputs, memory, tgt_mask=tgt_mask)
+            output = model(inputs)
 
             loss = criterion(output.view(-1, vocab_size), targets.view(-1))
             loss.backward()
@@ -103,10 +94,9 @@ with tqdm(total=num_steps, desc="Training", position=0) as pbar:
             current_step += 1
             pbar.update(1)  # Update tqdm progress by one step
 
-            if current_step % 100 == 0:
+            if current_step % 1000 == 0:
                 print(f"Step [{current_step}/{num_steps}] completed. Loss: {loss.item()}")
-
-    torch.save(model.state_dict(), 'weights/score_transformer.pth')
+                torch.save(model.state_dict(), f'weights/score_transformer_{max_seq_len}.pth')
 
 # tensors = {
 #     "embedding": torch.zeros((2, 2)),

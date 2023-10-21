@@ -6,3 +6,4 @@ mido
 pretty_midi
 miditoolkit
 miditok
+x-transformers
