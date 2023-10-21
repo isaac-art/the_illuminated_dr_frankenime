@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-class LSTMEncoder(nn.Module)
+class LSTMEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim, bidi=True):
         super(LSTMEncoder, self).__init__()
         self.lstm = nn.LSTM(input_dim, hidden_dim, bidirectional=bidi)

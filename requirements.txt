@@ -2,4 +2,7 @@
 numpy
 noise
 safetensors
+mido
+pretty_midi
+miditoolkit
 miditok

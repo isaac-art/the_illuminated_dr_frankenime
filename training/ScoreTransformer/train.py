@@ -4,8 +4,9 @@ from tqdm import tqdm
 import torch.optim as optim
 import torch.nn.functional as F
 from safetensors.torch import save_file
-from torch.utils.data import DataLoader
+from torch.utils.data import random_split
 from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import DataLoader, Dataset
 from models.papers.lupker_2021 import ScoreTransformer
 
 from utils import p_
@@ -14,46 +15,55 @@ from utils.training import make_deterministic
 p_()
 make_deterministic()
 
-device = "cpu"
+class MIDIDataset(Dataset):
+    def __init__(self, np_file_path):
+        self.tokenized_sequences = np.load(np_file_path, allow_pickle=True)
+        self.vocab_size = self.get_vocab_size()
 
+    def get_vocab_size(self):
+        return max([max(seq) for seq in self.tokenized_sequences]) + 1
+
+    def __len__(self):
+        return len(self.tokenized_sequences)
+
+    def __getitem__(self, idx):
+        sequence = self.tokenized_sequences[idx]
+        inputs = torch.tensor(sequence[:-1], dtype=torch.long)
+        targets = torch.tensor(sequence[1:], dtype=torch.long)
+        return inputs, targets
+
+
+
+device = "mps"
 d_model = 512
-nhead = 8
-num_layers = 8
-dim_feedforward = 2048
-max_len = 10000  # large number for max seq len
-batch_size = 16
+batch_size = 8
 num_steps = 250000
 learning_rate = 0.001
-seq_len = 2048
+seq_len = 2048 -1 # -1 as we are predicting next token
+midi_dataset = MIDIDataset('datasets/lupker_maestro_midi.npy')
+vocab_size = midi_dataset.vocab_size
 
-print("Loading data...")
-tokenized_sequences = np.load('datasets/maestro_midi.npy', allow_pickle=True) # typ np.object_.
-num_midi_tracks = tokenized_sequences.shape[0]
-print("Num tokenised MIDI Tracks: ", num_midi_tracks)
 
-vocab_size = np.max([np.max([np.max(track) for track in tokenized_sequences]) for track in tokenized_sequences]) + 1
-print("Vocab size: ", vocab_size)
+print("Vocab size:", vocab_size)
 
-def one_hot_encode(sequence, vocab_size):
-    return F.one_hot(torch.tensor(sequence), num_classes=vocab_size)
+total_size = len(midi_dataset)
+train_size = int(0.8 * total_size)  # 80% for training
+val_size = total_size - train_size
 
-one_hot_sequences = [one_hot_encode(seq, vocab_size) for seq in tokenized_sequences]
+train_dataset, val_dataset = random_split(midi_dataset, [train_size, val_size])
 
-def create_inputs_targets(one_hot_sequences):
-    inputs = [seq[:-1] for seq in one_hot_sequences]
-    targets = [seq[1:] for seq in one_hot_sequences]
+def collate_fn(batch):
+    inputs, targets = zip(*batch)
     padded_inputs = pad_sequence(inputs, batch_first=True, padding_value=0)
-    padded_targets = pad_sequence(targets, batch_first=True, padding_value=0)    
+    padded_targets = pad_sequence(targets, batch_first=True, padding_value=0)
     return padded_inputs, padded_targets
 
-inputs, targets = create_inputs_targets(one_hot_sequences)
-print("Inputs shape: ", inputs.shape)
-print("Targets shape: ", targets.shape)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 
-exit()
 
 print("Creating model...")
-model = ScoreTransformer(d_model, nhead, num_layers, dim_feedforward, vocab_size, max_len)
+model = ScoreTransformer(vocab_size=vocab_size, max_len=seq_len, dim_feedforward=seq_len).to(device)
 print(model)
 p_()
 
@@ -63,54 +73,40 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 print("Creating loss function...")
 criterion = torch.nn.CrossEntropyLoss() 
 
-print("Creating data loader...")
-train_loader = DataLoader(
-    OneHotDataset(loaded_encoded_midi, vocab_size),
-    batch_size=batch_size,
-    shuffle=True,
-    collate_fn=lambda batch: auto_reg_collate_fn(batch, vocab_size)
-)
-
 print("Training...")
 current_step = 0
+num_steps = 2000
+
 # PAPER: The model plateaued at a loss of ~1.7 during training after approximately 250,000 steps.
-memory = torch.zeros(batch_size, seq_len, d_model).to(device)  # Adjust dimensions as needed
+memory = torch.zeros(seq_len, batch_size, d_model).to(device)  # Just Zeros as we are only training decoder, but need to pass something to torch transofmrerdecoderlayer 
 
-# Training loop
-while current_step < num_steps:
-    for batch_idx, (input_data, target_data) in enumerate(train_loader):
-        if current_step >= num_steps:
-            break
 
-        # Move data to device
-        print(input_data.shape, target_data.shape)
-        input_data = input_data.to(device)
-        target_data = target_data.to(device)
-        
-        optimizer.zero_grad()
+with tqdm(total=num_steps, desc="Training", position=0) as pbar:
+    current_step = 0
+    while current_step < num_steps:
+        for inputs, targets in train_loader:
+            if current_step >= num_steps:
+                break
 
-        # Forward pass
-        # mask all pad tokens (vocab_size) 
-        # mask = (input_data.sum(dim=2) != vocab_size).unsqueeze(1).unsqueeze(2).to(device)
-        output = model(input_data, memory)
-        
-        # Compute loss and gradients
-        loss = criterion(output.view(-1, vocab_size), target_data.view(-1))
-        loss.backward()
+            inputs, targets = inputs.to(device), targets.to(device)
 
-        # Update parameters
-        optimizer.step()
+            tgt_mask = (torch.triu(torch.ones(seq_len, seq_len)) == 1).transpose(0, 1)
+            tgt_mask = tgt_mask.float().masked_fill(tgt_mask == 0, float('-inf')).masked_fill(tgt_mask == 1, float(0.0)).to(device)
 
-        # Step counter
-        current_step += 1
+            optimizer.zero_grad()
+            output = model(inputs, memory, tgt_mask=tgt_mask)
 
-        # Logging
-        if current_step % 1000 == 0:
-            print(f"Step [{current_step}/{num_steps}] completed. Loss: {loss.item()}")
+            loss = criterion(output.view(-1, vocab_size), targets.view(-1))
+            loss.backward()
+            optimizer.step()
 
-# save 
-torch.save(model.state_dict(), 'weights/score_transformer.pth')
+            current_step += 1
+            pbar.update(1)  # Update tqdm progress by one step
 
+            if current_step % 100 == 0:
+                print(f"Step [{current_step}/{num_steps}] completed. Loss: {loss.item()}")
+
+    torch.save(model.state_dict(), 'weights/score_transformer.pth')
 
 # tensors = {
 #     "embedding": torch.zeros((2, 2)),
