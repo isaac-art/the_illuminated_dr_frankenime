@@ -16,8 +16,8 @@ make_deterministic()
 
 device = 'mps'
 num_steps = 100000
-max_seq_len = 128
-max_mem_len = 256
+max_seq_len = 32
+max_mem_len = 64
 learning_rate = 1e-4
 
 data = f'datasets/nuttall_groove_encoded_test_train_val.npy' #(contains three seqs test, train, val)
@@ -76,6 +76,6 @@ for step in tqdm(range(num_steps)):
         val_chunk_start = np.random.randint(0, len(val_list)-20)
         val_chunk = val_list[val_chunk_start:val_chunk_start+20]
         val_chunk_torch = torch.tensor(val_chunk).unsqueeze(0).to(device)
-        gen = xl_wrapper.generate(start_tokens=val_chunk_torch, seq_len=100, eos_token=0, temperature=1.0)
+        gen = xl_wrapper.generate(start_tokens=val_chunk_torch, seq_len=32, eos_token=0, temperature=1.0)
         print(gen)
         model.train()
