@@ -1,11 +1,13 @@
 .DS_Store
 weights/
 samples/
-datasets/
 _res/
 *.npy
 *.pt
 *.pth
+*.json
+
+!datasets/nuttall_groove_encoded_test_train_val.npy
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
