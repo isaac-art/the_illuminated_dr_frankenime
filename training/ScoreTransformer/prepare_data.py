@@ -23,6 +23,7 @@ tokenizer = MIDILike(config)
 
 maestro_dir = '/Users/isaac/Library/CloudStorage/Dropbox/nime_ml/gen_dnn_implementations/_datasets/maestro-v3.0.0/'
 
+chunk = False
 seq_len = 256
 tokenised = []
 file_count = 0
@@ -33,17 +34,22 @@ for root, dirs, files in os.walk(maestro_dir):
             print(file_count, end="\r")
             midi = MidiFile(os.path.join(root, file))
             tokens = tokenizer(midi)
-            # chunk into multiple sequences of len seq_len (discard remainder)
-            for i in range(0, len(tokens[0].ids), seq_len):
-                s = tokens[0].ids[i:i+seq_len]
-                if len(s) == seq_len:
-                    # print(len(s))
-                    tokenised.append(tokens[0].ids[i:i+seq_len])
-            # tokenised.append(tokens[0].ids)
+            if chunk:
+                # chunk into multiple sequences of len seq_len (discard remainder)
+                for i in range(0, len(tokens[0].ids), seq_len):
+                    s = tokens[0].ids[i:i+seq_len]
+                    if len(s) == seq_len:
+                        # print(len(s))
+                        tokenised.append(tokens[0].ids[i:i+seq_len])
+            else:
+                tokenised.append(tokens[0].ids)
 
-
-tokenizer.save_params(f'datasets/lupker_maestro_midi_{seq_len}.json')
-np.save(f'datasets/lupker_maestro_midi_{seq_len}.npy', tokenised, allow_pickle=True)
+if chunk:
+    tokenizer.save_params(f'datasets/lupker_maestro_midi_{seq_len}.json')
+    np.save(f'datasets/lupker_maestro_midi_{seq_len}.npy', tokenised, allow_pickle=True)
+else:
+    tokenizer.save_params(f'datasets/lupker_maestro_midi_full.json')
+    np.save(f'datasets/lupker_maestro_midi_full.npy', tokenised, allow_pickle=True)
 
 #max([max(seq) for seq in self.tokenized_sequences]) + 1
 print("vocab size:", max([max(seq) for seq in tokenised]) + 1)
