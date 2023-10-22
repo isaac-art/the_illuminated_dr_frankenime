@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+
 class Encoder(nn.Module):
     def __init__(self, input_dim, hidden_dim, bidirectional=False):
         super(Encoder, self).__init__()
@@ -9,7 +10,7 @@ class Encoder(nn.Module):
         
     def forward(self, src):
         outputs, (hidden, cell) = self.lstm(src)
-        return hidden, cell
+        return outputs, hidden, cell
 
 class Decoder(nn.Module):
     def __init__(self, output_dim, hidden_dim):
@@ -17,7 +18,7 @@ class Decoder(nn.Module):
         self.output_dim = output_dim
         self.lstm = nn.LSTM(output_dim, hidden_dim)
         self.fc_out = nn.Linear(hidden_dim, output_dim)
-        self.softmax = nn.Softmax(dim=1)
+        self.softmax = nn.Softmax(dim=1) 
         
     def forward(self, input, hidden, cell):
         output, (hidden, cell) = self.lstm(input, (hidden, cell))
@@ -38,8 +39,7 @@ class Seq2Seq(nn.Module):
         trg_vocab_size = self.decoder.output_dim
         
         outputs = torch.zeros(trg_len, batch_size, trg_vocab_size).to(self.device)
-        
-        hidden, cell = self.encoder(src)
+        enc_out, hidden, cell = self.encoder(src)
         
         if self.encoder.lstm.bidirectional:
             num_layers = hidden.shape[0] // 2
@@ -51,11 +51,9 @@ class Seq2Seq(nn.Module):
         for t in range(1, trg_len):
             output, hidden, cell = self.decoder(input, hidden, cell)
             outputs[t] = output
-            
             teacher_force = torch.rand(1).item() < teacher_forcing_ratio
             top1 = output.argmax(1)
             input = trg[t] if teacher_force else top1
-            
         return outputs
 
 

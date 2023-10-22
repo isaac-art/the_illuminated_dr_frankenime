@@ -15,18 +15,18 @@ tokenizer = MIDILike(params=Path(f"datasets/lupker_maestro_midi_{max_seq_len}.js
 
 device = 'mps'
 model = ScoreTransformer(num_tokens=vocab_size, max_seq_len=max_seq_len).to(device)
-model.load_state_dict(torch.load(f'weights/score_transformer_{max_seq_len}_25500.pth', map_location=torch.device(device)))
+model.load_state_dict(torch.load(f'weights/score_transformer_{max_seq_len}_78000.pth', map_location=torch.device(device)))
 model.eval()
 
 
 ARGMAXED = False
-temp = 0.8  # Temperature, 1.0 = no change
+temp = 0.9  # Temperature, 1.0 = no change
 top_k = 35  # Only consider top_k tokens
 top_p = 0.9  # 
 
 target_out_len = 256
 input_midi = '/Users/isaac/Library/CloudStorage/Dropbox/nime_ml/gen_dnn_implementations/_datasets/maestro-v3.0.0/2014/MIDI-UNPROCESSED_01-03_R1_2014_MID--AUDIO_01_R1_2014_wav--1.midi'
-encoded = tokenizer(input_midi)[0].ids[:32] # first n tokens from input midi
+encoded = tokenizer(input_midi)[0].ids[:256] # first n tokens from input midi
 ori = encoded.copy()
 generated_tokens = []
 
@@ -47,7 +47,7 @@ with torch.no_grad():
         generated_tokens.append(next_token)
         encoded.append(next_token)
         encoded = encoded[1:]
-        print(generated_tokens[-1])
+        # print(generated_tokens[-1])
 
 # add ori to start of generated tokens
 generated_tokens = [ori + generated_tokens]

@@ -2,6 +2,7 @@
 weights/
 samples/
 datasets/
+_res/
 *.npy
 *.pt
 *.pth

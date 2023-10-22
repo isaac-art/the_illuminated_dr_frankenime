@@ -19,14 +19,9 @@ model = ScoreTransformer(num_tokens=vocab_size, max_seq_len=max_seq_len).to(devi
 model.load_state_dict(torch.load(f'weights/score_transformer_{max_seq_len}_25500.pth', map_location=torch.device(device)))
 model.eval()
 
-def process_midi(input_midi, temp=0.8, top_k=45, top_p=0.9, target_out_len=256, input_limit=32):
+def process_midi(input_midi, temp=0.9, top_k=35, top_p=0.9, target_out_len=512, input_limit=256):
     print("processing...", input_midi.name)
     ARGMAXED = False
-    temp = 0.8  # Temperature, 1.0 = no change
-    top_k = 45  # Only consider top_k tokens
-    top_p = 0.9  # 
-    target_out_len = 256
-    input_limit = 32
     midi_obj = MidiFile(input_midi.name)
     encoded = tokenizer(midi_obj)[0].ids[:input_limit] # first n tokens from input midi
     ori = encoded.copy()
@@ -63,11 +58,11 @@ iface = gr.Interface(
     fn=process_midi,
     inputs=[
         "file",
-        gr.inputs.Number(default=0.8, label="Temperature"),
+        gr.inputs.Number(default=1.0, label="Temperature"),
         gr.inputs.Number(default=35, label="Top K"),
         gr.inputs.Number(default=0.9, label="Top P"),
-        gr.inputs.Number(default=256, label="Target Output Length"),
-        gr.inputs.Number(default=32, label="Input Limit")
+        gr.inputs.Number(default=512, label="Target Output Length"),
+        gr.inputs.Number(default=256, label="Input Limit")
     ],
     outputs="text",
     live=False
