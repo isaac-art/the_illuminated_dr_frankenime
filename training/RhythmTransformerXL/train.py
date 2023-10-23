@@ -4,6 +4,8 @@ from tqdm import tqdm
 from pathlib import Path
 import torch.optim as optim
 
+from torch.utils.data import DataLoader, TensorDataset
+
 from x_transformers import XLAutoregressiveWrapper
 
 from utils import p_
@@ -14,10 +16,11 @@ from models.papers.nuttall_2021 import RhythmTransformerXL
 p_()
 make_deterministic()
 
+ngt = NuttallGrooveTokenizer()
 device = 'mps'
-num_steps = 100000
-max_seq_len = 32
-max_mem_len = 64
+num_steps = 10000
+max_seq_len = 1024
+max_mem_len = 128
 learning_rate = 1e-4
 
 data = f'datasets/nuttall_groove_encoded_test_train_val.npy' #(contains three seqs test, train, val)
@@ -41,11 +44,18 @@ current_step = 0
 
 xl_wrapper = XLAutoregressiveWrapper(model)
 
-train_torch = torch.tensor(train[:1000]).unsqueeze(0).to(device)
+# train_torch = torch.tensor(train).unsqueeze(0).to(device)
 # test_torch = torch.tensor(test[:1000]).unsqueeze(0).to(device)
 # val_torch = torch.tensor(val[:1000]).unsqueeze(0).to(device)
 
-# split val list into lists on each 0 token
+chunk_size = 1024  # choose appropriate size for mem
+train_chunks = [train[i:i + chunk_size] for i in range(0, len(train), chunk_size)]
+# discard last chunk if it's not the right size
+if len(train_chunks[-1]) != chunk_size:
+    train_chunks = train_chunks[:-1]
+train_dataset = TensorDataset(torch.tensor(train_chunks))
+train_loader = DataLoader(train_dataset, batch_size=32)
+
 val_lists = [[]]
 j = 0
 for i in range(len(val)):
@@ -56,19 +66,34 @@ for i in range(len(val)):
     else:
         val_lists[j].append(val[i])
 
+# model.train()
+# for step in tqdm(range(num_steps)):
+#     optimizer.zero_grad()
 
+#     loss = xl_wrapper(train_torch)
+#     loss.backward()
+#     optimizer.step()
+accumulation_steps = 4  
 model.train()
-for step in tqdm(range(num_steps)):
+
+pbar = tqdm(range(num_steps))
+for step in pbar:
     optimizer.zero_grad()
-
-    loss = xl_wrapper(train_torch)
+    batch = next(iter(train_loader))
+    batch = batch[0].to(device)  # Assuming batch is a tuple containing one tensor
+    loss = xl_wrapper(batch)
+    loss = loss / accumulation_steps
     loss.backward()
-    optimizer.step()
+    pbar.set_description(f"Loss: {loss.item()}")
 
-    if step % 1000 == 0:
+    if (step + 1) % accumulation_steps == 0:
+        optimizer.step()
+        optimizer.zero_grad()
+
+    if step % 1000 == 0 and step > 0:
         print(f"Step {step} | Loss: {loss.item()}")
         # save
-        torch.save(model.state_dict(), f"weights/rhythm_transformer_{max_seq_len}_{max_mem_len}.pt")
+        torch.save(model.state_dict(), f"weights/rhythm_transformer_{max_seq_len}_{max_mem_len}_{step}.pt")
 
         model.eval()
         # validate on a random 20 int chunk of random val list
@@ -76,6 +101,8 @@ for step in tqdm(range(num_steps)):
         val_chunk_start = np.random.randint(0, len(val_list)-20)
         val_chunk = val_list[val_chunk_start:val_chunk_start+20]
         val_chunk_torch = torch.tensor(val_chunk).unsqueeze(0).to(device)
-        gen = xl_wrapper.generate(start_tokens=val_chunk_torch, seq_len=32, eos_token=0, temperature=1.0)
+        gen = xl_wrapper.generate(start_tokens=val_chunk_torch, seq_len=512, eos_token=0, temperature=1.0)
         print(gen)
+        midif = ngt.decode(gen[0].cpu().numpy().tolist())
+        midif.write(f'samples/rt/test_{step}.mid')
         model.train()
