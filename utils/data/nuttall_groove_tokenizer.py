@@ -1,4 +1,5 @@
 import os
+import random
 from miditoolkit import MidiFile, Note
 from pretty_midi import PrettyMIDI, Instrument, Note
 
@@ -61,10 +62,10 @@ class NuttallGrooveTokenizer():
         return 4 
     
     def bucket_to_velocity(self, bucket):
-        if bucket == 1: return 32
-        elif bucket == 2: return 64
-        elif bucket == 3: return 96
-        elif bucket == 4: return 127
+        if bucket == 1: return random.randint(1, 31) #
+        elif bucket == 2: return random.randint(32, 63)
+        elif bucket == 3: return random.randint(64, 95)
+        elif bucket == 4: return random.randint(96, 127)
         return 0 # should never happen?
 
     def ticks_to_time_tokens(self, ticks):

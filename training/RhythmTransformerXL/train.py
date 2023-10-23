@@ -18,9 +18,9 @@ make_deterministic()
 
 ngt = NuttallGrooveTokenizer()
 device = 'mps'
-num_steps = 10000
-max_seq_len = 1024
-max_mem_len = 128
+num_steps = 30000
+max_seq_len = 128
+max_mem_len = int(max_seq_len * 1.5)
 learning_rate = 1e-4
 
 data = f'datasets/nuttall_groove_encoded_test_train_val.npy' #(contains three seqs test, train, val)
@@ -48,7 +48,7 @@ xl_wrapper = XLAutoregressiveWrapper(model)
 # test_torch = torch.tensor(test[:1000]).unsqueeze(0).to(device)
 # val_torch = torch.tensor(val[:1000]).unsqueeze(0).to(device)
 
-chunk_size = 1024  # choose appropriate size for mem
+chunk_size = max_seq_len * 2
 train_chunks = [train[i:i + chunk_size] for i in range(0, len(train), chunk_size)]
 # discard last chunk if it's not the right size
 if len(train_chunks[-1]) != chunk_size:
@@ -93,7 +93,7 @@ for step in pbar:
     if step % 1000 == 0 and step > 0:
         print(f"Step {step} | Loss: {loss.item()}")
         # save
-        torch.save(model.state_dict(), f"weights/rhythm_transformer_{max_seq_len}_{max_mem_len}_{step}.pt")
+        torch.save(model.state_dict(), f"weights/rhythm_transformer_{max_seq_len}_{max_mem_len}.pt")
 
         model.eval()
         # validate on a random 20 int chunk of random val list
@@ -101,8 +101,10 @@ for step in pbar:
         val_chunk_start = np.random.randint(0, len(val_list)-20)
         val_chunk = val_list[val_chunk_start:val_chunk_start+20]
         val_chunk_torch = torch.tensor(val_chunk).unsqueeze(0).to(device)
-        gen = xl_wrapper.generate(start_tokens=val_chunk_torch, seq_len=512, eos_token=0, temperature=1.0)
+        gen = xl_wrapper.generate(start_tokens=val_chunk_torch, seq_len=max_seq_len*2, eos_token=0, temperature=1.0)
         print(gen)
         midif = ngt.decode(gen[0].cpu().numpy().tolist())
         midif.write(f'samples/rt/test_{step}.mid')
         model.train()
+
+torch.save(model.state_dict(), f"weights/rhythm_transformer_{max_seq_len}_{max_mem_len}.pt")
