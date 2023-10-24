@@ -2,7 +2,8 @@ import torch
 import numpy as np
 from tqdm import tqdm
 from pathlib import Path
-import torch.optim as optim
+from torch.optim import Adam
+from torch.optim.lr_scheduler import LambdaLR
 
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -19,9 +20,8 @@ make_deterministic()
 ngt = NuttallGrooveTokenizer()
 device = 'mps'
 num_steps = 30000
-max_seq_len = 128
+max_seq_len = 96
 max_mem_len = int(max_seq_len * 1.5)
-learning_rate = 1e-4
 
 data = f'datasets/nuttall_groove_encoded_test_train_val.npy' #(contains three seqs test, train, val)
 test, train, val = np.load(data, allow_pickle=True)
@@ -37,7 +37,13 @@ print(model)
 p_()
 
 print("Creating optimizer...")
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+target_learning_rate = 1e-3
+optimizer = Adam(model.parameters(), lr=target_learning_rate)
+warmup_steps = 1000  # You can adjust this number
+initial_learning_rate = 1e-6  # Your initial learning rate (smaller than target)
+warmup_schedule = lambda step: min(1.0, step / warmup_steps) * (target_learning_rate - initial_learning_rate) + initial_learning_rate
+scheduler = LambdaLR(optimizer, lr_lambda=warmup_schedule)
+
 
 print("Training...")
 current_step = 0
@@ -48,7 +54,7 @@ xl_wrapper = XLAutoregressiveWrapper(model)
 # test_torch = torch.tensor(test[:1000]).unsqueeze(0).to(device)
 # val_torch = torch.tensor(val[:1000]).unsqueeze(0).to(device)
 
-chunk_size = max_seq_len * 2
+chunk_size = max_seq_len * 4
 train_chunks = [train[i:i + chunk_size] for i in range(0, len(train), chunk_size)]
 # discard last chunk if it's not the right size
 if len(train_chunks[-1]) != chunk_size:
@@ -89,6 +95,7 @@ for step in pbar:
     if (step + 1) % accumulation_steps == 0:
         optimizer.step()
         optimizer.zero_grad()
+        scheduler.step()
 
     if step % 1000 == 0 and step > 0:
         print(f"Step {step} | Loss: {loss.item()}")

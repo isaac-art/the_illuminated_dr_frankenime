@@ -59,7 +59,7 @@ class Seq2Seq(nn.Module):
 
 
 
-device = torch.device('cpu')
+device = torch.device('mps')
 NUM_CHORALES = 405  # Number of chorales in the dataset
 SEQ_LEN = 256  # Length of each sequence
 NOTES = 130  # 0-127 MIDI notes + 128 for silence + 129 for repeat
