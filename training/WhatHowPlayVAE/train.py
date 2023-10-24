@@ -7,7 +7,8 @@ from torch.optim import Adam
 
 from utils.general import p_
 from utils.data import GillickDataMaker
-from models.papers.gillick_2021 import WhatHowPlayVAE
+from utils.training import vae_freebits_loss
+from models.papers.gillick_2021 import WhatHowPlayAuxiliaryVAE
 
 
 # the Score and Groove inputs to this model are each 
@@ -41,7 +42,7 @@ device = 'mps'
 batch_size = 32
 train_steps = 10000
 
-model = WhatHowPlayVAE().to(device)
+model = WhatHowPlayAuxiliaryVAE().to(device)
 print(model)
 p_()
 
@@ -50,9 +51,6 @@ critereon = nn.CrossEntropyLoss()
 
 # QUESTIONS 
 # - velocities and notes are ints in midi range, 
-#  but timing is float in seconds. 
-# should we do something with the timings? if we do how do we get them back on decode??
-
 # sequences are two-measures. but vary in length? does this matter. what do we do, pad out to longest?
 
 print(len(combi_train), len(quantized_train), len(squashed_train)) # 18482 18482 18482
@@ -62,13 +60,16 @@ longest_notes = max(len(seq) for seq in quantized_train)
 longest_groove = max(len(seq) for seq in squashed_train)
 
 
-# shoudl we use scalar?
+# shoudl we use scalar? i think it could be good to put floats and ints together. we'd have to do extra work when decoding at the end to convert back to ints. but think its ok as features are separates
 
-# train groove
- 
- 
-# train notes
-# train combi
+# mean = torch.mean(data, dim=0)
+# std = torch.std(data, dim=0)
+# data_normalized = (data - mean) / std
+
+# train groove vae
+# train score vae
+# train combi vae
+
 
 
 exit()

@@ -1,2 +1,2 @@
-from .code.main import WhatHowPlayVAE
+from .code.main import WhatHowPlayAuxiliaryVAE
 

@@ -3,7 +3,7 @@ from pretty_midi import PrettyMIDI, Instrument, Note
 
 class GillickDataMaker:
     def __init__(self):
-        self.measures = 1
+        self.measures = 2
         self.beats_per_measure = 4
 
     def quantizer(self, x):
@@ -47,23 +47,24 @@ class GillickDataMaker:
         measures = []
         downbeats = midi_obj.get_downbeats()
         # for n in range(len(downbeats)-1):
-        for n in range(len(downbeats)-1):
+        for n in range(0, len(downbeats)-self.measures, self.measures):
             midiobjcopy = copy.deepcopy(midi_obj)
-            midiobjcopy.adjust_times([downbeats[n], downbeats[n + 1]], [0, downbeats[n + 1] - downbeats[n]])
+            midiobjcopy.adjust_times([downbeats[n], downbeats[n + self.measures]], [0, downbeats[n + self.measures] - downbeats[n]])
             measures.append(midiobjcopy)
         print(f'encoded {len(measures)} measures')
         # combis = self.tolist(midi_obj)
         combis = []
         quantizeds = []
         squasheds = []
-        for measure in measures:
+        for i, measure in enumerate(measures):
             if len(measure.instruments[0].notes) < 1: 
-                print("no notes, skipping measure", len(measure.instruments[0].notes))
+                print("no notes, skipping measure", i)
                 continue
             combis.append(self.tolist(measure))
             quantizeds.append(self.quantizer(measure))
             squasheds.append(self.squasher(measure))
-        assert len(combis) == len(squasheds) == len(measures)
+            print(f'{len(combis), len(quantizeds), len(squasheds)} measures')
+        # assert len(combis) == len(squasheds) == len(measures)
         return (combis, quantizeds, squasheds)
     
     def decode(self, measure, notes_only=False, timing_only=False):

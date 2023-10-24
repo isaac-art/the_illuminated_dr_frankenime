@@ -28,6 +28,11 @@ if __name__ == "__main__":
         for file in files:
             if file.endswith('.mid') or file.endswith('.midi'):
                 combis, quantizeds, squasheds = gdm.encode(os.path.join(root, file))
+                if len(combis) < 1: 
+                    print("no notes, wont add measure to dataset")
+                    continue
+
+                print(f"adding {len(combis), len(quantizeds), len(squasheds)} measures to dataset")
                 dataset['combis'].extend(combis)
                 dataset['quantizeds'].extend(quantizeds)
                 dataset['squasheds'].extend(squasheds)
@@ -37,9 +42,9 @@ if __name__ == "__main__":
     with open('datasets/gillick.pkl', 'wb') as f:
         pickle.dump(dataset, f)
 
-    # midiout = gdm.decode(dataset['combis'][0])
-    # midiout.write('samples/whp/remake.mid')
-    # midiout = gdm.decode(dataset['quantizeds'][0], notes_only=True)
-    # midiout.write('samples/whp/notes.mid')
-    # midiout = gdm.decode(dataset['squasheds'][0], timing_only=True)
-    # midiout.write('samples/whp/groove.mid')
+    midiout = gdm.decode(dataset['combis'][0])
+    midiout.write('samples/whp/remake.mid')
+    midiout = gdm.decode(dataset['quantizeds'][0], notes_only=True)
+    midiout.write('samples/whp/notes.mid')
+    midiout = gdm.decode(dataset['squasheds'][0], timing_only=True)
+    midiout.write('samples/whp/groove.mid')
