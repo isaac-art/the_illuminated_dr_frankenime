@@ -9,9 +9,11 @@ class NegHalfOne(nn.Module):
 class LSTMVAEEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim, latent_dim, layers):
         super(LSTMVAEEncoder, self).__init__()
-        self.lstm = nn.LSTM(input_dim, hidden_dim, layers, bidirectional=True, batch_first=True) # (seq_len, batch, vocab)
-        self.mu = nn.Linear(hidden_dim*2, latent_dim)
-        self.logvar = nn.Linear(hidden_dim*2, latent_dim)
+        self.lstm = nn.LSTM(input_dim, hidden_dim, layers, bidirectional=False, batch_first=True) # (seq_len, batch, vocab)
+        # self.mu = nn.Linear(hidden_dim*2, latent_dim)
+        # self.logvar = nn.Linear(hidden_dim*2, latent_dim)
+        self.mu = nn.Linear(hidden_dim, latent_dim)
+        self.logvar = nn.Linear(hidden_dim, latent_dim)
     
     def forward(self, x):
         # print("forward encoder", x.shape)
@@ -53,7 +55,7 @@ class WhatHowPlayVAE(nn.Module):
         # print("forward vae", x.shape)
         mu, logvar = self.encoder(x)
         z = self.reparameterize(mu, logvar)
-        return self.decoder(z)
+        return self.decoder(z), z, mu, logvar
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5*logvar)
@@ -80,7 +82,7 @@ class WhatHowPlayAuxiliaryVAE(nn.Module):
         z1 = self.reparameterize(dmu, dlogvar)
         z2 = self.reparameterize(rmu, rlogvar)
         z = torch.cat((z1, z2), dim=1)
-        return self.joint_decoder(z)
+        return self.joint_decoder(z), z1, z2, dmu, dlogvar, rmu, rlogvar
 
     def forward_score(self, x):
         return self.score_vae(x)

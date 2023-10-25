@@ -38,7 +38,7 @@ train_dataset, val_dataset = random_split(dataset, [train_samples, val_samples])
 
 gdm = GillickDataMaker()
 device = 'mps'
-batch_size = 64
+batch_size = 128
 epochs = 1000
 lr = 1e-4
 
@@ -73,36 +73,22 @@ for epoch in range(epochs):
         joint = torch.cat((drum, rhythm), dim=2) # (batch, 32, 27)
         joint = joint.to(device)
         
-        dmu, dlogvar = model.score_vae.encoder(drum)
-        z1 = model.score_vae.reparameterize(dmu, dlogvar)
-        recon_drum = model.score_vae.decoder(z1)
+        recon_drum, z1, dmu, dlogvar = model.score_vae(drum)
         # print("recon_drum", recon_drum.cpu().detach().numpy())
 
-        rmu, rlogvar = model.groove_vae.encoder(rhythm)
-        z2 = model.groove_vae.reparameterize(rmu, rlogvar)
-        recon_rhythm = model.groove_vae.decoder(z2)
+        recon_rhythm, z2, rmu, rlogvar = model.groove_vae(rhythm)
 
         joint_z = torch.cat((z1, z2), dim=2)
         joint_recon = model.joint_decoder(joint_z)
 
-        # print("-"*120)
-        # print("joint_recon.shape", joint_recon.shape) # 32, 32, 27
-        # print("joint.shape", joint.shape) # 32, 32, 27
-        # print("recon_drum.shape", recon_drum.shape)   # 32, 32, 9
-        # print("drum.shape", drum.shape) # 32, 32, 9
-        # print("recon_rhythm.shape", recon_rhythm.shape) # 32, 32, 18
-        # print("rhythm.shape", rhythm.shape) # 32, 32, 18
-        # print("-"*120)
-
         dloss = vae_freebits_loss_mse(recon_drum, drum, dmu, dlogvar)
         rloss = vae_freebits_loss_mse(recon_rhythm, rhythm, rmu, rlogvar)
-        jloss = F.mse_loss(joint_recon, joint, reduction='sum')
+        # jloss = F.mse_loss(joint_recon, joint, reduction='sum')
+        jloss_d = vae_freebits_loss_mse(joint_recon, joint, dmu, dlogvar)
+        jloss_r = vae_freebits_loss_mse(joint_recon, joint, rmu, rlogvar)
 
-        loss = rloss + dloss + jloss #weight mix 
-        
-        # Backward pass
+        loss = rloss + dloss + jloss_d + jloss_r
         loss.backward() 
-        # Gradient clipping
         torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
 
         train_loss += loss.item()
@@ -112,7 +98,8 @@ for epoch in range(epochs):
         print(f'Epoch: {epoch}, Batch: {batch_idx+1}/{len(train_loader)}, Average Loss: {avg_loss}', end='\r')
     print(f'Epoch: {epoch}, Batch: {batch_idx+1}/{len(train_loader)}, Average Loss: {avg_loss}')
     # save epoch
-    torch.save(model.state_dict(), f'weights/whathowplayauxvae_{epoch}.pt')
+    if epoch % 100 == 0:
+        torch.save(model.state_dict(), f'weights/whathowplayauxvae_{epoch}.pt')
     
     VALIDATE = False
     if VALIDATE and epoch % 10 == 0:
