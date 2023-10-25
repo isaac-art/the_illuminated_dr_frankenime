@@ -1,6 +1,7 @@
 import copy
-from pretty_midi import PrettyMIDI, Instrument, Note
-from miditoolkit import MidiFile
+from math import floor
+import numpy as np
+from miditoolkit import MidiFile, Note, Instrument
 from utils.data import roland_to_nuttall_pitch_mapping
 
 class GillickDataMaker:
@@ -8,10 +9,12 @@ class GillickDataMaker:
         self.beats = 32
         self.drum_count = len(set(roland_to_nuttall_pitch_mapping.values())) # 9 - 35min 51max
         self.drum_tokens = {}
-        offset = 3
         for i, drum in enumerate(set(roland_to_nuttall_pitch_mapping.values())):
-            self.drum_tokens[drum] = i + offset
+            self.drum_tokens[drum] = i
 
+    def map(self, x, min=0, max=127, out_min=0, out_max=1):
+        return (x - min) * (out_max - out_min) / (max - min) + out_min
+    
     def map_pitch(self, x):
         return self.drum_tokens[roland_to_nuttall_pitch_mapping[x]]
 
@@ -22,44 +25,29 @@ class GillickDataMaker:
             midi_obj.instruments[0].notes[idx] = note
         return midi_obj
 
-    def notes_matrix(self, x, ticks_per_16th):
-        # F1 (X) is a quantization function that removes all microtiming 
-        # and velocity information from a drum loop (keeping only drum score)
-        # remove the timing and velocity information
-        # x is a pretty_midi.PrettyMIDI object
-        # returns txm matrix. t=32(self.measures*self.measure_split), m=9 (self.drum_count drum notes)
-        notes_matrix = [[0 for _ in range(self.drum_count)] for _ in range(self.beats)]
+    def notes(self, x, ticks_per_16th):
+        notes_matrix = np.array([[0 for _ in range(self.drum_count)] for _ in range(self.beats)])
         for note in x:
-            print(note)
-            note.start = round(note.start / ticks_per_16th) * ticks_per_16th
-            note.end = round(note.end / ticks_per_16th) * ticks_per_16th
-            
+            notes_matrix[int(note.start / ticks_per_16th)][self.map_pitch(note.pitch)] = 1
+        return notes_matrix
     
-    def timing_matrix(self, x):
-        #  F2 (X) is a “squashing” function keeping performance characteristics 
-        # in the form of microtiming and velocity, but discarding the drum score
-        # remove the pitch information
-        # x is a pretty_midi.PrettyMIDI object
-        timing_seq = []
-        for note in x.instruments[0].notes:
-            timing_seq.append(note.start)
-            timing_seq.append(note.end)
-            timing_seq.append(note.velocity)
-        # print(timing_seq)
-        return timing_seq
+    def velocities(self, x, ticks_per_16th):
+        velocity_matrix = np.array([[0.0 for _ in range(self.drum_count)] for _ in range(self.beats)])
+        for note in x:
+            velocity = self.map(note.velocity)
+            velocity_matrix[int(note.start / ticks_per_16th)][self.map_pitch(note.pitch)] = velocity
+        return velocity_matrix
     
-    def tolist(self, x):
-        # measure from pretty_midi.PrettyMIDI object to list
-        measure = []
-        for note in x.instruments[0].notes:
-            measure.append(note.start)
-            measure.append(note.end)
-            measure.append(note.velocity)
-            measure.append(note.pitch) #pitch last as easier to match back
-        return measure
-    
+    def offsets(self, x, ticks_per_16th):
+        offset_matrix = np.array([[0.0 for _ in range(self.drum_count)] for _ in range(self.beats)])
+        for note in x:
+            dist_to_16th = note.start % ticks_per_16th
+            offset = self.map(dist_to_16th, min=0, max=ticks_per_16th, out_min=-0.5, out_max=0.5)    
+            offset_matrix[int(note.start / ticks_per_16th)][self.map_pitch(note.pitch)] = offset
+        return offset_matrix
+
     def split_measures(self, midi_obj):
-        ticks_per_beat = midi_obj.ticks_per_beat
+        ticks_per_beat = 480 #midi_obj.ticks_per_beat
         beats_per_measure = 4
         measures_per_split = 2 
         division = ticks_per_beat * beats_per_measure * measures_per_split
@@ -79,70 +67,71 @@ class GillickDataMaker:
         return measures
 
     def encode(self, midi):
-        # load the midifile and split into measures
         midi_obj = MidiFile(midi)
-        ticks_per_beat = midi_obj.ticks_per_beat
+        ticks_per_beat = 480 #midi_obj.ticks_per_beat
         ticks_per_16th = ticks_per_beat // 4
         quantized = self.quantize_notes(midi_obj, ticks_per_16th)
-        measures = self.split_measures(quantized)
-        print(f'encoded {len(measures)} measures') # 33 measures
-        notes_only = [self.notes_matrix(measure, ticks_per_16th) for measure in measures]
-        print(f'encoded {len(notes_only)} measures')
-        print(notes_only[0])
-        timing_only = [self.timing_matrix(measure, ticks_per_16th) for measure in measures]
-        exit()
-        midi_obj = PrettyMIDI(midi)
-        ticks_per_beat = 480
-        measures = []
-        downbeats = midi_obj.get_downbeats()
-        # for n in range(len(downbeats)-1):
-        for n in range(0, len(downbeats)-self.measures, self.hop):
-            #  "we use 2 measure (or 2 bar) pattern for all reported experimental evaluations, sliding the window with a hop size of 1 measure."
-            midiobjcopy = copy.deepcopy(midi_obj)
-            midiobjcopy.adjust_times([downbeats[n], downbeats[n + self.measures]], [0, downbeats[n + self.measures] - downbeats[n]])
-            measures.append(midiobjcopy)
-        print(f'encoded {len(measures)} measures')
-        # combis = self.tolist(midi_obj)
-        combis = []
-        quantizeds = []
-        squasheds = []
-        for i, measure in enumerate(measures):
-            if len(measure.instruments[0].notes) < 1: 
-                print("no notes, skipping measure", i)
-                continue
-            combis.append(self.tolist(measure))
-            quantizeds.append(self.quantizer(measure))
-            squasheds.append(self.squasher(measure))
-            # print(f'{len(combis), len(quantizeds), len(squasheds)} measures')
-        # assert len(combis) == len(squasheds) == len(measures)
-        return (combis, quantizeds, squasheds)
+        q_measures = self.split_measures(quantized)
+        o_measures = self.split_measures(midi_obj)
+        notes_m = np.array([self.notes(measure, ticks_per_16th) for measure in q_measures])
+        velocities_m =  np.array([self.velocities(measure, ticks_per_16th) for measure in o_measures])
+        offsets_m =  np.array([self.offsets(measure, ticks_per_16th) for measure in o_measures])
+        timings = np.concatenate((velocities_m, offsets_m), axis=2)
+        return notes_m, timings
     
-    def decode(self, measure, notes_only=False, timing_only=False):
-        # currently only can do one measure decode, as we lose the timing 
-        # between measures and cant stich them back together easily
-        inc = 0
-        if notes_only: skip = 1
-        elif timing_only: skip = 3
-        else: skip = 4
-        midiobj = PrettyMIDI()
-        instrument = Instrument(program=0, is_drum=True)
-        midiobj.instruments.append(instrument)
-        for i in range(0, len(measure), skip):
-            if timing_only:
-                start = measure[i] 
-                end = measure[i+1] 
-                velocity = measure[i+2]
-                pitch = 36
-            elif notes_only:
-                start = inc 
-                end = inc 
-                velocity = 127
-                pitch = measure[i]
-                inc += 0.1 # arbitrary tick increase
-            else:
-                start = measure[i] 
-                end = measure[i+1] 
-                velocity = measure[i+2]
-                pitch = measure[i+3]
-            instrument.notes.append(Note(start=start, end=end, pitch=pitch, velocity=velocity))
-        return midiobj
+    def decode(self, notes=None, timings=None): 
+        # print(notes.shape, timings.shape) #(8, 32, 9) (8, 32, 18)
+        midi_obj = MidiFile()
+        if notes is None and timings is None: return midi_obj # empty midi
+        ticks_per_beat = 480
+        ticks_per_16th = ticks_per_beat // 4
+        midi_obj.ticks_per_beat = ticks_per_beat
+        midi_obj.instruments.append(Instrument(program=0, is_drum=True))
+        # notes is (measures, beats, drums)
+        # timings is (measures, beats, feats*2), where feats is 2 (vel, offset)
+        enumerator = enumerate(notes) if notes is not None else enumerate(timings)
+        # print("-"*120)
+        for i, measure in enumerator:
+            for j, beat in enumerate(measure):
+                for k, drum in enumerate(beat[:self.drum_count]):
+                    if drum != 0: # if there is data 
+                        start = i * ticks_per_16th * 16 + j * ticks_per_16th
+                        if notes is None: pitch = 36
+                        else: pitch = list(self.drum_tokens.keys())[list(self.drum_tokens.values()).index(k)]
+                        if timings is None: velocity = 127
+                        else: 
+                            velocity = int(self.map(timings[i][j][k], 0, 1, 0, 127))
+                            start += int(self.map(timings[i][j][k+self.drum_count], -0.5, 0.5, 0, ticks_per_16th))
+                        end = start + ticks_per_16th
+                        note = Note(start=start, end=end, pitch=pitch, velocity=velocity)
+                        # print(note)
+                        midi_obj.instruments[0].notes.append(note)
+        return midi_obj
+
+
+        # inc = 0
+        # if notes_only: skip = 1
+        # elif timing_only: skip = 3
+        # else: skip = 4
+        # midiobj = PrettyMIDI()
+        # instrument = Instrument(program=0, is_drum=True)
+        # midiobj.instruments.append(instrument)
+        # for i in range(0, len(measure), skip):
+        #     if timing_only:
+        #         start = measure[i] 
+        #         end = measure[i+1] 
+        #         velocity = measure[i+2]
+        #         pitch = 36
+        #     elif notes_only:
+        #         start = inc 
+        #         end = inc 
+        #         velocity = 127
+        #         pitch = measure[i]
+        #         inc += 0.1 # arbitrary tick increase
+        #     else:
+        #         start = measure[i] 
+        #         end = measure[i+1] 
+        #         velocity = measure[i+2]
+        #         pitch = measure[i+3]
+        #     instrument.notes.append(Note(start=start, end=end, pitch=pitch, velocity=velocity))
+        # return midiobj

@@ -1,2 +1,1 @@
-from .code.main import WhatHowPlayAuxiliaryVAE
-
+from .code.main import WhatHowPlayAuxiliaryVAE, WhatHowPlayVAE, LSTMVAEEncoder, LSTMVAEDecoder
