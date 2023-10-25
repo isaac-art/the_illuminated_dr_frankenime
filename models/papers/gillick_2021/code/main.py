@@ -29,7 +29,7 @@ class LSTMVAEDecoder(nn.Module):
     
 
 class WhatHowPlayVAE(nn.Module):
-    def __init__(self, seq_len=300, hidden_dim = 128, latent_dim = 16, layers = 1):
+    def __init__(self, seq_len, hidden_dim, latent_dim, layers):
         super(WhatHowPlayVAE, self).__init__()
         self.encoder = LSTMVAEEncoder(seq_len, hidden_dim, latent_dim, layers)
         self.decoder = LSTMVAEDecoder(latent_dim, hidden_dim, seq_len, layers)
@@ -40,10 +40,11 @@ class WhatHowPlayVAE(nn.Module):
         return self.decoder(z)
 
 class WhatHowPlayAuxiliaryVAE(nn.Module):
-    def __init__(self, seq_len=300):
+    def __init__(self):
         super(WhatHowPlayAuxiliaryVAE, self).__init__()
-        hidden_dim = 128
-        latent_dim = 16
+        seq_len = 32 # 2 measures at 16th note resolution
+        hidden_dim = 512
+        latent_dim = 256
         layers = 1
         self.score_vae = WhatHowPlayVAE(seq_len, hidden_dim, latent_dim, layers)
         self.groove_vae = WhatHowPlayVAE(seq_len, hidden_dim, latent_dim, layers)

@@ -15,14 +15,14 @@ class PerlinNoiseGenerator:
     def generate_perlin_noise(self, z_flat: torch.Tensor) -> torch.Tensor:
         return torch.tensor([pnoise1(self.t + float(i), self.seed) for i in z_flat.tolist()]).float().to(z_flat.device)
 
-    def perlin_latent(self, z: Union[torch.Tensor, np.ndarray, List[float]], amt: float) -> Union[torch.Tensor, np.ndarray, List[float]]:
+    def perlin_latent(self, z, amt, device):
         if not (0 <= amt <= 1):
             raise ValueError("amt must be between 0 and 1")
         original_type = type(z)
         if isinstance(z, np.ndarray):
-            z = torch.tensor(z, dtype=torch.float32, device='cpu')
+            z = torch.tensor(z, dtype=torch.float32, device=device)
         elif isinstance(z, list):
-            z = torch.tensor(z, dtype=torch.float32, device='cpu')
+            z = torch.tensor(z, dtype=torch.float32, device=device)
         elif not isinstance(z, torch.Tensor):
             raise TypeError("Unsupported type for z")
 

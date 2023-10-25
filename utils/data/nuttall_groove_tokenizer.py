@@ -3,33 +3,35 @@ import random
 from miditoolkit import MidiFile, Note
 from pretty_midi import PrettyMIDI, Instrument, Note
 
+roland_to_nuttall_pitch_mapping = {
+    36: 35, #kick-bass
+    38: 38, #snare(head)-snare
+    40: 38, #snare(rim)-snare
+    37: 38, #snare(xstick)-snare
+    48: 50, #tom1-high tom
+    50: 50, #tom1-high tom
+    45: 48, #tom2-lowmid tom
+    47: 48, #tom2-lowmid tom
+    43: 45, #tom3-highfloor tom
+    58: 45, #tom3-highfloor tom
+    46: 46, #hhopen(bow)-hhopen
+    26: 46, #hhopen(edge)-hhopen
+    42: 42, #hhclosed(bow)-hhclosed
+    22: 42, #hhclosed(edge)-hhclosed
+    44: 42, #hhpedal(bow)-hhclosed
+    49: 49, #crash1(bow)-crash
+    55: 49, #crash1(edge)-crash
+    57: 49, #crash2(bow)-crash
+    52: 49, #crash2(edge)-crash
+    51: 51, #ride(bow)-ride
+    59: 51, #ride(edge)-ride
+    53: 51, #ride(bell)-ride
+}
+
 class NuttallGrooveTokenizer():
     def __init__(self):
         self.quantize = 16 # 16th notes
-        self.roland_to_nuttall_pitch_mapping = {
-            36: 35, #kick-bass
-            38: 38, #snare(head)-snare
-            40: 38, #snare(rim)-snare
-            37: 38, #snare(xstick)-snare
-            48: 50, #tom1-high tom
-            50: 50, #tom1-high tom
-            45: 48, #tom2-lowmid tom
-            47: 48, #tom2-lowmid tom
-            43: 45, #tom3-highfloor tom
-            58: 45, #tom3-highfloor tom
-            46: 46, #hhopen(bow)-hhopen
-            26: 46, #hhopen(edge)-hhopen
-            42: 42, #hhclosed(bow)-hhclosed
-            22: 42, #hhclosed(edge)-hhclosed
-            44: 42, #hhpedal(bow)-hhclosed
-            49: 49, #crash1(bow)-crash
-            55: 49, #crash1(edge)-crash
-            57: 49, #crash2(bow)-crash
-            52: 49, #crash2(edge)-crash
-            51: 51, #ride(bow)-ride
-            59: 51, #ride(edge)-ride
-            53: 51, #ride(bell)-ride
-        }
+        self.roland_to_nuttall_pitch_mapping = roland_to_nuttall_pitch_mapping
         self.time_tokens_ticks = {
             1: 1, # 1 tick
             2: 10, # 10 ticks

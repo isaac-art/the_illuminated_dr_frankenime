@@ -6,7 +6,8 @@ _res/
 *.pt
 *.pth
 *.json
-
+datasets/
+datasets/Bach_Chorales/
 !datasets/nuttall_groove_encoded_test_train_val.npy
 
 # Byte-compiled / optimized / DLL files

@@ -2,8 +2,9 @@ import torch
 import pickle
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.optim import Adam
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 from utils.general import p_
 from utils.data import GillickDataMaker
@@ -53,18 +54,64 @@ critereon = nn.CrossEntropyLoss()
 # - velocities and notes are ints in midi range, 
 # sequences are two-measures. but vary in length? does this matter. what do we do, pad out to longest?
 
-print(len(combi_train), len(quantized_train), len(squashed_train)) # 18482 18482 18482
+# vis distribution of values in a random offset for each set
+rng = np.random.randint(0, len(combi_train))
+combi_sample = combi_train[rng]
+quantized_sample = quantized_train[rng]
+squashed_sample = squashed_train[rng]
+
+plt.hist(combi_sample, bins=100)
+plt.title("combi")
+plt.show()
+plt.hist(quantized_sample, bins=100)
+plt.title("quantized")
+plt.show()
+plt.hist(squashed_sample, bins=100)
+plt.title("squashed")
+plt.show()
+
+
+print(len(combi_train), len(quantized_train), len(squashed_train)) # 8527 8527 8527
 
 longest_combi = max(len(seq) for seq in combi_train)
 longest_notes = max(len(seq) for seq in quantized_train)
 longest_groove = max(len(seq) for seq in squashed_train)
 
+print(longest_combi, longest_notes, longest_groove) # 436 109 327
+longest = max(longest_combi, longest_notes, longest_groove) # 436
+# pad out all seqs to longest
+combi_train = [seq + [0]*(longest-len(seq)) for seq in combi_train]
+quantized_train = [seq + [0]*(longest-len(seq)) for seq in quantized_train]
+squashed_train = [seq + [0]*(longest-len(seq)) for seq in squashed_train]
 
-# shoudl we use scalar? i think it could be good to put floats and ints together. we'd have to do extra work when decoding at the end to convert back to ints. but think its ok as features are separates
+for i in range(5):
+    rng = np.random.randint(0, len(combi_train))
+    print(combi_train[rng][:5], quantized_train[rng][:5], squashed_train[rng][:5])
 
-# mean = torch.mean(data, dim=0)
-# std = torch.std(data, dim=0)
-# data_normalized = (data - mean) / std
+
+exit()
+def normalize_to_tensor(data):
+    data = torch.Tensor(data)
+    mean = torch.mean(data, dim=0)
+    std = torch.std(data, dim=0)
+    feature_means = torch.mean(data, dim=0)
+    feature_stds = torch.std(data, dim=0)
+    print("Feature means:", feature_means[:5])
+    print("Feature std devs:", feature_stds[:5])
+
+    std[std == 0] = 1.0
+    data_normalized = (data - mean) / std
+    return data_normalized
+
+combi_train = normalize_to_tensor(combi_train)
+quantized_train = normalize_to_tensor(quantized_train)
+squashed_train = normalize_to_tensor(squashed_train)
+
+# print min max of each
+print(torch.min(combi_train), torch.max(combi_train)) # -4.9533 92.33
+print(torch.min(quantized_train), torch.max(quantized_train)) # -4.9533 92.33
+print(torch.min(squashed_train), torch.max(squashed_train)) # -2.6482 92.3309
+
 
 # train groove vae
 # train score vae
