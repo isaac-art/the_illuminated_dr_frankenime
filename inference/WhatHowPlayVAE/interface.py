@@ -10,7 +10,7 @@ from utils.data import GillickDataMaker
 
 device = 'mps'
 model = WhatHowPlayAuxiliaryVAE().to(device)
-weights = f"weights/whathowplayauxvae_100.pt" 
+weights = f"weights/whathowplayauxvae_9900.pt" 
 model.load_state_dict(torch.load(weights, map_location=torch.device(device)))
 model.eval()
 gdm = GillickDataMaker()

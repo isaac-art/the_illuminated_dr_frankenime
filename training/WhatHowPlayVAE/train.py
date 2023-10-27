@@ -38,8 +38,8 @@ train_dataset, val_dataset = random_split(dataset, [train_samples, val_samples])
 
 gdm = GillickDataMaker()
 device = 'mps'
-batch_size = 128
-epochs = 1000
+batch_size = 128*2
+epochs = 10000
 lr = 1e-4
 
 # model = WhatHowPlayVAE(seq_len=9*2, hidden_dim=128, latent_dim=256, layers=1).to(device)
@@ -99,41 +99,6 @@ for epoch in range(epochs):
     print(f'Epoch: {epoch}, Batch: {batch_idx+1}/{len(train_loader)}, Average Loss: {avg_loss}')
     # save epoch
     if epoch % 100 == 0:
-        torch.save(model.state_dict(), f'weights/whathowplayauxvae_{epoch}.pt')
+        torch.save(model.state_dict(), f'weights/whathowplayauxvae_{epoch}_{avg_loss}.pt')
     
-    VALIDATE = False
-    if VALIDATE and epoch % 10 == 0:
-        p_()
-        # VALIDATION
-        val_loss = 0
-        num_batches = 0
-        model.eval()
-        with torch.no_grad():
-            for batch_idx, (drum, rhythm) in enumerate(val_loader):
-                drum = drum.to(device)
-                rhythm = rhythm.to(device)
-                joint = torch.cat((drum, rhythm), dim=2) # (batch, 32, 27)
-                joint = joint.to(device)
-
-                dmu, dlogvar = model.score_vae.encoder(drum)
-                z1 = model.score_vae.reparameterize(dmu, dlogvar)
-                recon_drum = model.score_vae.decoder(z1)
-
-                rmu, rlogvar = model.groove_vae.encoder(rhythm)
-                z2 = model.groove_vae.reparameterize(rmu, rlogvar)
-                recon_rhythm = model.groove_vae.decoder(z2)
-
-                joint_z = torch.cat((z1, z2), dim=2)
-                joint_recon = model.joint_decoder(joint_z)
-
-                dloss = vae_loss_bce(recon_drum, drum, dmu, dlogvar)
-                rloss = vae_loss_mse(recon_rhythm, rhythm, rmu, rlogvar)
-                jloss = F.mse_loss(joint_recon, joint, reduction='sum')
-
-                loss = rloss*2 + dloss*2 + jloss
-
-                val_loss += loss.item()
-                num_batches += 1
-                avg_loss = val_loss / num_batches
-                print(f'Epoch: {epoch}, Batch: {batch_idx+1}/{len(val_loader)}, Average Loss: {avg_loss}', end='\r')
-        print(f'VAL : Epoch: {epoch}, Batch: {batch_idx+1}/{len(val_loader)}, Average Loss: {avg_loss}')
+torch.save(model.state_dict(), f'weights/whathowplayauxvae.pt')

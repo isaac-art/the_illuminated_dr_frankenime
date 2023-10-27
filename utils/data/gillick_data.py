@@ -100,7 +100,7 @@ class GillickDataMaker:
                         else: pitch = list(self.drum_tokens.keys())[list(self.drum_tokens.values()).index(k)]
                         if timings is None: velocity = 127
                         else: 
-                            velocity = int(self.map(timings[i][j][k], 0, 1, 0, 127))
+                            velocity = max(min(int(self.map(timings[i][j][k], 0, 1, 0, 127)), 127), 0)
                             start += int(self.map(timings[i][j][k+self.drum_count], -0.5, 0.5, 0, ticks_per_16th))
                         end = start + ticks_per_16th
                         note = Note(start=start, end=end, pitch=pitch, velocity=velocity)
