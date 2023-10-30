@@ -18,7 +18,7 @@ seq_len = 32
 vocab_size = 130 # 0-127 MIDI notes + 128 for silence + 129 for repeat
 n_epochs = 25000
 batch_size = 128
-lr = 1e-4
+lr = 1e-5
 
 # LOAD DATA
 # [seq_len, batch_size, vocab_size] [32, 128, 130]
@@ -44,11 +44,11 @@ model = ConvincingHarmony().to(device)
 print(model)
 optimizer = optim.Adam(model.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss()
-tf = 0.5
-
-# model.load_state_dict(torch.load("weights/ch_900.pt"))
+tf = 0.1
+load_e = 16000
+if load_e > 0: model.load_state_dict(torch.load(f"weights/ch_{load_e}.pt"))
 # BEGIN TRAINING
-for epoch in range(0, n_epochs):
+for epoch in range(load_e, n_epochs):
     # TRAINING
     model.train()
     for batch_idx, data_batch in enumerate(train_loader):
