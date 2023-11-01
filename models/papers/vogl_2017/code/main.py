@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 
-class DrumRBM(nn.Module):
+from models.core import BaseModel
+
+class DrumRBM(BaseModel):
     # Restricted Boltzmann Machine for drum pattern generation
     def __init__(self):
         super(DrumRBM, self).__init__()
@@ -13,6 +15,19 @@ class DrumRBM(nn.Module):
         self.hidden_dropout = nn.Dropout(0.5)
         self.visible_dropout = nn.Dropout(0.1)
 
+    def forward(self, visible):
+        hidden_prob, hidden = self.sample_hidden(visible)
+        visible_prob, visible = self.sample_visible(hidden)
+        return visible_prob, visible, hidden_prob, hidden
+    
+    def sample(self):
+        # random visible
+        visible = torch.rand(1, self.n_visible)
+        # gibbs sampling
+        for i in range(1000):
+            visible_prob, visible, hidden_prob, hidden = self.forward(visible)
+        return visible_prob, visible, hidden_prob, hidden
+    
     def sample_hidden(self, visible):
         hidden_prob = torch.sigmoid(torch.matmul(visible, self.weight_matrix.t()) + self.hidden_bias)
         # hidden_prob = self.hidden_dropout(hidden_prob) #fails with dropout
@@ -25,3 +40,7 @@ class DrumRBM(nn.Module):
         # print("vp",visible_prob)
         return visible_prob, torch.bernoulli(visible_prob)
     
+    def generate(self, z, n=1000):
+        for i in range(n):
+            visible_prob, visible, hidden_prob, hidden = self.forward(z)
+        return visible_prob, visible, hidden_prob, hidden

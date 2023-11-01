@@ -1,7 +1,9 @@
 import torch.nn as nn
 from x_transformers import TransformerWrapper, Decoder
 
-class ScoreTransformer(nn.Module):
+from models.core import BaseModel
+
+class ScoreTransformer(BaseModel):
     def __init__(self, num_tokens=10000, max_seq_len=1024, 
             d_model=512, depth=12, nhead=8, rel_pos_bias=True):
         super(ScoreTransformer, self).__init__()

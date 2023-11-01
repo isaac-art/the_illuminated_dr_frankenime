@@ -60,3 +60,29 @@ class LSTMVAE(nn.Module):
         std = torch.exp(0.5*logvar)
         eps = torch.rand_like(std)
         return mu + eps*std
+    
+
+class GRUVAEEncoder(nn.Module):
+    def __init__(self, input_dim, hidden_dim, latent_dim):
+        super(GRUVAEEncoder, self).__init__()
+        self.rnn = nn.GRU(input_dim, hidden_dim, bidirectional=True)
+        self.fc_mu = nn.Linear(hidden_dim * 2, latent_dim)
+        self.fc_logvar = nn.Linear(hidden_dim * 2, latent_dim)
+
+    def forward(self, x):
+        _, h = self.rnn(x)
+        h = torch.cat((h[-2, :, :], h[-1, :, :]), dim=1)
+        mu = self.fc_mu(h)
+        logvar = self.fc_logvar(h)
+        return mu, logvar
+
+class GRUVAEDecoder(nn.Module):
+    def __init__(self, latent_dim, hidden_dim, output_dim):
+        super(GRUVAEDecoder, self).__init__()
+        self.rnn = nn.GRU(latent_dim, hidden_dim)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, z):
+        out, _ = self.rnn(z)
+        out = self.fc(out)
+        return out

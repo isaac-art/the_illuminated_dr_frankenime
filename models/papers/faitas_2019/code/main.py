@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 
-from models.core import Seq2SeqBiLSTM
+from models.core import Seq2SeqBiLSTM, BaseModel
 
-class ConvincingHarmony(nn.Module):
+class ConvincingHarmony(BaseModel):
     def __init__(self):
         super(ConvincingHarmony, self).__init__()
         self.vocab_size = 130

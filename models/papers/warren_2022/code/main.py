@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 
-from models.core.conv_vae import ConvVAE, ConvEncoder, ConvDecoder
+from models.core import BaseModel, ConvVAE, ConvEncoder, ConvDecoder
 
-class LatentDrummer(nn.Module):
+class LatentDrummer(BaseModel):
     def __init__(self):
         super(LatentDrummer, self).__init__()
         self.enc_config = [(1, 8, 10, 5), (8, 8, 4, 2), (8, 4, 4, 1)]
@@ -20,5 +20,10 @@ class LatentDrummer(nn.Module):
         output, mu, logvar = self.LatentDrummer(x)
         return output, mu, logvar
     
-    def sample(self, z):
-        return self.LatentDrummer.sample(z)
+    def sample(self):
+        z = torch.randn(1, self.latent_dim)
+        return self.LatentDrummer.decode(z)
+    
+    def generate(self, z):
+        return self.LatentDrummer.decode(z)
+    

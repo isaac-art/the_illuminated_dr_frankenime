@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.core import LSTMVAEDecoder, LSTMVAE
+from models.core import LSTMVAEDecoder, LSTMVAE, BaseModel
     
-class WhatHowPlayAuxiliaryVAE(nn.Module):
+class WhatHowPlayAuxiliaryVAE(BaseModel):
     def __init__(self, device="mps"):
         super(WhatHowPlayAuxiliaryVAE, self).__init__()
         self.device = device
@@ -50,3 +50,6 @@ class WhatHowPlayAuxiliaryVAE(nn.Module):
         z = torch.randn(32, 256).to(self.device)
         return self.groove_vae.decoder(z)
 
+    def generate(self, z1, z2):
+        z = torch.cat((z1, z2), dim=1)
+        return self.joint_decoder(z)

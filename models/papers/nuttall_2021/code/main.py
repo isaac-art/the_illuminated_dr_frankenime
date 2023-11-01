@@ -1,7 +1,9 @@
 import torch.nn as nn
+
+from models.core import BaseModel
 from x_transformers import TransformerWrapper, Decoder
 
-class RhythmTransformerXL(nn.Module):
+class RhythmTransformerXL(BaseModel):
     def __init__(self, num_tokens=40, max_seq_len=64, max_mem_len=128,
             d_model=512, depth=6, nhead=8):
         super(RhythmTransformerXL, self).__init__()

@@ -1,8 +1,8 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-class PhysicallyIntelligentRNN(nn.Module):
+from models.core import BaseModel
+
+class PhysicallyIntelligentRNN(BaseModel):
     def __init__(self, vocab_size=130, embedding_dim=256, hidden_dim=256, num_layers=2, dropout=0.1):
         super(PhysicallyIntelligentRNN, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
