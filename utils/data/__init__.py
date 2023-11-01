@@ -5,3 +5,4 @@ from .nuttall_groove_tokenizer import NuttallGrooveTokenizer, roland_to_nuttall_
 from .gillick_data import GillickDataMaker
 from .naess_encoder import NAESSEncoder
 from .vogl_data import VoglRBMData
+from .bach_duet_data import BachDuetData

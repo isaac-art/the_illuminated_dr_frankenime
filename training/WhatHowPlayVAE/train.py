@@ -44,10 +44,6 @@ lr = 1e-4
 
 # model = WhatHowPlayVAE(seq_len=9*2, hidden_dim=128, latent_dim=256, layers=1).to(device)
 model = WhatHowPlayAuxiliaryVAE().to(device)
-nn.init.zeros_(model.score_vae.encoder.logvar.weight)
-nn.init.zeros_(model.score_vae.encoder.logvar.bias)
-nn.init.zeros_(model.groove_vae.encoder.logvar.weight)
-nn.init.zeros_(model.groove_vae.encoder.logvar.bias)
 
 # print(model)
 optimizer = Adam(model.parameters(), lr=lr)
