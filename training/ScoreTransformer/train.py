@@ -4,8 +4,8 @@ import torch.optim as optim
 from safetensors.torch import save_file
 from torch.utils.data import random_split
 from torch.utils.data import DataLoader
-from models.papers.lupker_2021 import ScoreTransformer
 
+from models.papers.lupker_2021 import ScoreTransformer
 from utils import p_
 from utils.data import MIDIDataset, midi_collate_fn
 from utils.training import make_deterministic

@@ -19,7 +19,6 @@ class StackMemory(nn.Module):
         batch_size, seq_len, _ = hidden_state.size()
         if self.stack is None:
             self.stack = torch.zeros(batch_size, self.stack_depth, self.hidden_dim).to(device)
-        new_stacks = []
         for t in range(seq_len):
             # At each timestep, the RNN reads an element from the stack
             ht = hidden_state[:, t, :] 
@@ -30,17 +29,19 @@ class StackMemory(nn.Module):
             action_logits = self.action_predictor(ht + context)
             action_prob = F.softmax(action_logits, dim=1)
             action = torch.argmax(action_prob, dim=1)
+            # ??????????????
             # and then takes an action (push, pop, no action or a combination of these) to update the content of the stack
             new_stack = self.stack.clone()
-            for i, act in enumerate(action):
+            for i, act in enumerate(action): # ??????????????
                 if act == 0:  # Push
                     new_stack[i, 1:] = self.stack[i, :-1]
                     new_stack[i, 0] = ht[i]
-                elif act == 1:  # Pop
+                elif act == 1:  # Pop # ??????????????
                     new_stack[i, :-1] = self.stack[i, 1:]
                     new_stack[i, -1] = self.D
+                else:  # No-Op
+                    new_stack[i] = self.stack[i]
             self.stack = new_stack
-            new_stacks.append(self.stack)
         # The final token predictor consists of a fully connected layer 
         # print("stack",self.stack.shape) #stack ([32, 32, 400])
         # output = self.fc(self.stack)

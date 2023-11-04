@@ -11,7 +11,7 @@ from models.papers.faitas_2019 import ConvincingHarmony
 device = "mps"
 ne = NAESSEncoder()
 model = ConvincingHarmony().to(device)
-model.load_state_dict(torch.load("weights/ch_2999.pt", map_location=device))
+model.load_state_dict(torch.load("weights/ch_24600.pt", map_location=device))
 model.eval()
 
 def process(input, temp=0.9, target_length=128):

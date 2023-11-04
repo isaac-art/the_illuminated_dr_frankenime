@@ -6,3 +6,4 @@ from .gillick_data import GillickDataMaker
 from .naess_encoder import NAESSEncoder
 from .vogl_data import VoglRBMData
 from .bach_duet_data import BachDuetData
+from .join_midi import join_midi

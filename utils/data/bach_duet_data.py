@@ -1,6 +1,12 @@
 import numpy as np
 from miditoolkit import MidiFile, Note, Instrument
 
+KRUMHANSL_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
+KRUMHANSL_MINOR = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
+
+MAJOR_KEYS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] # 1-12
+MINOR_KEYS = ["Cm", "C#m", "Dm", "D#m", "Em", "Fm", "F#m", "Gm", "G#m", "Am", "A#m", "Bm"] # 13-24
+
 class BachDuetData():
     def __init__(self):
         self.TICKS_PER_16TH = 480 // 4  # Assuming 480 ticks per beat
@@ -39,22 +45,52 @@ class BachDuetData():
     
     def dec_rhythm(self, r):
         return list(self.RHYTHMS.keys())[r]
-        
+
+    def note_histogram(self, notes):
+        histogram = [0]*12
+        for note in notes:
+            histogram[note.pitch % 12] += 1
+        return histogram
+    
+    def correlation(self, profile, histogram):
+        return np.corrcoef(profile, histogram)[0, 1]
+
+    def get_key(self, midi_obj, start_tick):
+        notes = []
+        for note in midi_obj.instruments[0].notes:
+            if note.start >= start_tick and note.start < start_tick + self.TICKS_PER_MEASURE:
+                notes.append(note) 
+        if len(notes) == 0: return 0
+        histogram = self.note_histogram(notes)
+        major_correlations = [self.correlation(np.roll(KRUMHANSL_MAJOR, i), histogram) for i in range(12)]
+        minor_correlations = [self.correlation(np.roll(KRUMHANSL_MINOR, i), histogram) for i in range(12)]
+        major_max_idx = np.argmax(major_correlations)
+        minor_max_idx = np.argmax(minor_correlations)
+        if major_correlations[major_max_idx] > minor_correlations[minor_max_idx]:
+            return major_max_idx # MAJ 1-12
+        else:
+            return 12 + minor_max_idx # MIN 13-24
+                
     def encode(self, midi_path):
         midi_obj = MidiFile(midi_path)
         self.quantize_notes(midi_obj)
         end_tick = midi_obj.instruments[0].notes[-1].end
         num_frames = end_tick // self.TICKS_PER_16TH
         encoded_midi = np.zeros((num_frames, 3)) # [bar, beat, accent] CPC, midi_artic
+        measure_key = 0
         for tick in range(0, end_tick, self.TICKS_PER_16TH):
             frame_idx = tick // self.TICKS_PER_16TH 
             encoded_midi[frame_idx, 0] = self.enc_rhythm(frame_idx)
-            encoded_midi[frame_idx, 1] = 12 # CPC set to 12 (rest)
+            # if 0 then get all the notes to the next 0 
+            # and get the key 12min/12maj of those notes
+            if encoded_midi[frame_idx, 0] == 0:
+                measure_key = self.get_key(midi_obj, tick)
+                # if measure_key > 0: print("measure_key", measure_key)
+            encoded_midi[frame_idx, 1] = measure_key # CPC
             encoded_midi[frame_idx, 2] = 135 # MIDI Artic set to 135 (rest)
             for note in midi_obj.instruments[0].notes:
                 if note.start <= tick and note.end >= tick:
-                    # print(note)
-                    encoded_midi[frame_idx, 1] = note.pitch % 12  # CPC updated to pitch % 12
+                    # encoded_midi[frame_idx, 1] = note.pitch % 12  # CPC updated to pitch % 12
                     s = note.start == tick
                     encoded_midi[frame_idx, 2] = self.enc_midi_artic(note.pitch, s) # MIDI Artic updated to pitch_on/hold
                     # break # only one note at a time 
@@ -70,11 +106,12 @@ class BachDuetData():
             pitch, is_start = self.dec_midi_artic(int(midi_artic))
             # print(frame_idx, midi_artic, pitch, is_start)
             if pitch == 0: continue # skip rests
-            if is_start:
+            if is_start or frame_idx == 0 or frame_idx % self.TICKS_PER_16TH  == 0:
                 note = Note(start=tick, end=tick, pitch=pitch, velocity=100)
                 midi_obj.instruments[0].notes.append(note)
                 # print("add", midi_obj.instruments[0].notes[-1])
             else:
+                if len(midi_obj.instruments[0].notes) == 0: continue
                 midi_obj.instruments[0].notes[-1].end = tick
                 # print("update", midi_obj.instruments[0].notes[-1])
         # print(len(midi_obj.instruments[0].notes)) # we have corrent number of notes, just wrong timing.

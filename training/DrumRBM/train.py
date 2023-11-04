@@ -3,7 +3,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from models.papers.vogl_2017 import DrumRBM
 
-drbm = DrumRBM()
+drbm = DrumRBM() 
 optimizer = optim.SGD(drbm.parameters(), lr=0.1)
 k = 1
 latent_penalty = 0.1  # Penalty for latent selectivity

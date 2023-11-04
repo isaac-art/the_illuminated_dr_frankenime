@@ -21,5 +21,9 @@ class VoglRBMData():
         # each measure converted into a 64 bit (for the 4 by 16 rhythm patterns) binary vector format
         return
 
-    def encode(self):
+    def encode(self, midi_path):
+        midi_obj = MidiFile(midi_path)
+        midi_obj = self.quantize_notes(midi_obj)
+        
         pass
+ 
