@@ -20,13 +20,13 @@ class DrumRBM(BaseModel):
         visible_prob, visible = self.sample_visible(hidden)
         return visible_prob, visible, hidden_prob, hidden
     
-    def sample(self):
-        # random visible
-        visible = torch.rand(1, self.n_visible)
-        # gibbs sampling
-        for i in range(1000):
-            visible_prob, visible, hidden_prob, hidden = self.forward(visible)
-        return visible_prob, visible, hidden_prob, hidden
+    def sample(self, n_gibbs_steps=1000):
+        visible = torch.rand(1, self.n_visible).to(self.weight_matrix.device)
+        for _ in range(n_gibbs_steps):
+            _, hidden = self.sample_hidden(visible)
+            visible_prob, visible = self.sample_visible(hidden)
+        return visible_prob, visible
+
     
     def sample_hidden(self, visible):
         hidden_prob = torch.sigmoid(torch.matmul(visible, self.weight_matrix.t()) + self.hidden_bias)
