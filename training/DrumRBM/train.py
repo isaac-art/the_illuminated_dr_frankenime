@@ -7,7 +7,7 @@ from models.papers.vogl_2017 import DrumRBM
 
 device = "mps"
 drbm = DrumRBM().to(device)
-optimizer = optim.SGD(drbm.parameters(), lr=0.1)
+optimizer = optim.SGD(drbm.parameters(), lr=0.001)
 k = 1
 latent_penalty = 0.1  # Penalty for latent selectivity
 sparsity_penalty = 0.5  # Penalty for sparsity
@@ -20,8 +20,8 @@ train_data = data[:int(0.8*len(data))]
 test_data = data[int(0.8*len(data)):]
 
 
-train_data_loader = DataLoader(TensorDataset(torch.from_numpy(train_data)), batch_size=64, shuffle=True)
-test_data_loader = DataLoader(TensorDataset(torch.from_numpy(test_data)), batch_size=64, shuffle=True)
+train_data_loader = DataLoader(TensorDataset(torch.from_numpy(train_data)), batch_size=256, shuffle=True)
+test_data_loader = DataLoader(TensorDataset(torch.from_numpy(test_data)), batch_size=256, shuffle=True)
 
 persistent_chain = torch.bernoulli(torch.from_numpy(train_data[:128])).to(device)
 
@@ -36,6 +36,7 @@ for epoch in range(2000):
         _, h_fake = drbm.sample_hidden(persistent_chain)
         pos_phase = torch.matmul(visible_data.t(), h_data)
         neg_phase = torch.matmul(persistent_chain.t(), h_fake)
+
         loss = -torch.mean(pos_phase - neg_phase)
         latent_loss = torch.mean(torch.abs(torch.mean(h_data, dim=0) - torch.mean(h_fake, dim=0)))
         latent_loss = latent_penalty * latent_loss
