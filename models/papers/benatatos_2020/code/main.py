@@ -32,11 +32,11 @@ class BachDuet(BaseModel):
         # print("x_embedded", x_embedded.shape) #([32, 256, 150]
         rnn_out, hidden = self.note_rnn(x_embedded) #([32, 256, 400])
         token_pred = self.fc(rnn_out) #([32, 256, 135])
-        token_pred = self.dropout(token_pred) #([32, 256, 135])   
+        # token_pred = self.dropout(token_pred) #([32, 256, 135])   
         token_pred_sm = torch.softmax(token_pred, dim=1)
         krnn_out, khidden = self.key_rnn(rnn_out) #([32, 256, 400])
         key_pred = self.fckey(krnn_out) #([32, 256, 24])
-        key_pred = self.dropout(key_pred) #([32, 256, 24])
+        # key_pred = self.dropout(key_pred) #([32, 256, 24])
         key_pred_sm = torch.softmax(key_pred, dim=1)
         return token_pred, token_pred_sm, key_pred, key_pred_sm
 

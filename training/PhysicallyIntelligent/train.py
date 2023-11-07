@@ -5,7 +5,7 @@ import torch.optim as optim
 from models.papers.naess_2019 import PhysicallyIntelligentRNN
 
 device = "mps"
-batch_size = 32
+batch_size = 128
 model = PhysicallyIntelligentRNN().to(device)
 # # load state from prev train
 print(model)
@@ -16,7 +16,7 @@ data = torch.from_numpy(data).int()
 train_data = data[:int(0.9*len(data))]
 test_data = data[int(0.9*len(data)):]
 
-train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
 print(len(train_loader), len(test_loader))
@@ -54,7 +54,7 @@ for epoch in range(start_epoch, epochs):
                 print("Validation Loss: {}".format(loss.item()), end="\r")
             model.train()
         print("Validation Loss: {}".format(loss.item()))
-        # if validation loss is too far from training loss, then we are overfitting, so stop training
+        # if validation loss is too far from training loss, then we are overfitting
         if loss.item() > 1.5:
-            break
+            break 
 torch.save(model.state_dict(), f"weights/pii_{epoch}.pt")

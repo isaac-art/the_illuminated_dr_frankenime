@@ -1,7 +1,6 @@
-from noise import pnoise1
 import torch
 import numpy as np
-from typing import Union, List, Type
+from noise import pnoise1
 
 class PerlinNoiseGenerator:
     def __init__(self, seed: int = 42, step_size: float = 1.0):

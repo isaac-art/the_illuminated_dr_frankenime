@@ -41,6 +41,7 @@ class NAESSEncoder():
         return encoded
 
     def decode(self, encoded):
+        # encoded should be a sequence of integers
         new_midi = MidiFile()
         new_midi.ticks_per_beat = self.TICKS_PER_MEASURE
         new_midi.instruments.append(Instrument(0, is_drum=False, name="Piano"))

@@ -16,7 +16,7 @@ tracks = [ "Soprano.midi", "Bass.midi"] # soprano inputs, bass targets
 count = 0
 inputs = []
 targets = []
-chunk_size = 256
+chunk_size = 32
 
 for root, dirs, files in os.walk(data_dir):
     for d in dirs:
@@ -41,5 +41,5 @@ for root, dirs, files in os.walk(data_dir):
 
 out_inputs = np.array(inputs)#.astype(np.int32)
 out_targets = np.array(targets)#.astype(np.int32)
-np.save("datasets/bdd_inputs.npy", out_inputs)
-np.save("datasets/bdd_targets.npy", out_targets)
+np.save("datasets/bdd_inputs_32.npy", out_inputs)
+np.save("datasets/bdd_targets_32.npy", out_targets)

@@ -21,8 +21,9 @@ class MIDIDataset(Dataset):
         return inputs, targets
 
 
-def midi_collate_fn(batch):
+def midi_collate_fn(batch, pad=True, pad_value=0):
     inputs, targets = zip(*batch)
-    padded_inputs = pad_sequence(inputs, batch_first=True, padding_value=0)
-    padded_targets = pad_sequence(targets, batch_first=True, padding_value=0)
-    return padded_inputs, padded_targets
+    if pad:
+        inputs = pad_sequence(inputs, batch_first=True, padding_value=pad_value)
+        targets = pad_sequence(targets, batch_first=True, padding_value=pad_value)
+    return inputs, targets

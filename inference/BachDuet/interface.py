@@ -11,7 +11,7 @@ from models.papers.benatatos_2020 import BachDuet
 device = "mps"
 bdd = BachDuetData()
 model = BachDuet().to(device)
-model.load_state_dict(torch.load("weights/bachduet_350.pt", map_location=device))
+model.load_state_dict(torch.load("weights/bachduet_32_350.pt", map_location=device))
 model.eval()
 
 def process(input, temp=0.9):
@@ -70,7 +70,7 @@ def process(input, temp=0.9):
 with gr.Blocks(theme=gr.themes.Soft()) as iface:
     gr.Markdown(
     """
-    # ConvincingHarmony Demo
+    # BachDuet Demo
     """)
     with gr.Row():
         with gr.Column():

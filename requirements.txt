@@ -1,9 +1,10 @@
 # some torch version
+mido
 numpy
 noise
+miditok
+tensorboard
 safetensors
-mido
 pretty_midi
 miditoolkit
-miditok
 x-transformers
