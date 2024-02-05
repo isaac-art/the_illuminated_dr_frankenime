@@ -1,0 +1,72 @@
+.
+├── README.md
+├── __init__.py
+├── archive
+│   ├── ...pth
+│   ├── ...pt
+│   ├── summary
+│       └── ...
+│   └── ....json
+├── datasets
+│   ├── Bach_Chorales
+│   └── ...npy
+├── models
+│   ├── __init__.py
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── base_model.py
+│   │   ├── conv_vae.py
+│   │   ├── encodings.py
+│   │   ├── lstm.py
+│   │   ├── lstm_vae.py
+│   │   ├── memory.py
+│   │   └── seq2seq_lstm.py
+│   └── papers
+│       ├── __init__.py
+│       ├── <paper>
+│           ├── README.md
+│           ├── __init__.py
+│           └── code
+│               └── main.py
+├── pipelines
+│   └── inference
+│       ├── <model>
+│           └── interface.py
+│           └── sample.py
+├── requirements.txt
+├── samples
+│   ├── <model>
+│       └── <sample>.mid
+├── training
+│   ├── <Model>
+│   |   ├── prepare_data.py
+│   |   └── train.py
+│   └── base_trainer.py
+├── tree.txt
+├── utils
+    ├── __init__.py
+    ├── data
+    │   ├── __init__.py
+    │   ├── bach_duet_data.py
+    │   ├── get_bach_chorales.py
+    │   ├── gillick_data.py
+    │   ├── join_midi.py
+    │   ├── midi_dataset.py
+    │   ├── naess_encoder.py
+    │   ├── nuttall_groove_tokenizer.py
+    │   ├── oore_midi.py
+    │   ├── vogl_data.py
+    │   ├── warren_midi_markov_state.py
+    │   ├── warren_roli_data.py
+    │   └── warren_roli_drawings.py
+    ├── defaults.py
+    ├── errors.py
+    ├── general.py
+    ├── inference
+    │   ├── perlin_latents.py
+    │   ├── serial_utils.py
+    │   └── transformer_utils.py
+    └── training
+        ├── __init__.py
+        ├── helpers.py
+        └── vae_tools.py

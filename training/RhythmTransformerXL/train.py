@@ -12,7 +12,7 @@ from x_transformers import XLAutoregressiveWrapper
 from utils import p_
 from utils.data import NuttallGrooveTokenizer
 from utils.training import make_deterministic
-from models.papers.nuttall_2021 import RhythmTransformerXL
+from models.papers import RhythmTransformerXL
 
 p_()
 make_deterministic()
@@ -82,6 +82,9 @@ for i in range(len(val)):
 accumulation_steps = 4  
 model.train()
 
+# load weights
+model.load_state_dict(torch.load(f"archive/rhythmtransformer_submission.pt"))
+
 pbar = tqdm(range(num_steps))
 for step in pbar:
     optimizer.zero_grad()
@@ -97,21 +100,21 @@ for step in pbar:
         optimizer.zero_grad()
         scheduler.step()
 
-    if step % 1000 == 0 and step > 0:
+    if step % 1000 == 0:
         print(f"Step {step} | Loss: {loss.item()}")
         # save
-        torch.save(model.state_dict(), f"weights/rhythm_transformer_{max_seq_len}_{max_mem_len}.pt")
+        torch.save(model.state_dict(), f"archive/rhythmtransformer_{max_seq_len}_{max_mem_len}.pt")
 
-        model.eval()
-        # validate on a random 20 int chunk of random val list
-        val_list = val_lists[np.random.randint(0, len(val_lists))]
-        val_chunk_start = np.random.randint(0, len(val_list)-20)
-        val_chunk = val_list[val_chunk_start:val_chunk_start+20]
-        val_chunk_torch = torch.tensor(val_chunk).unsqueeze(0).to(device)
-        gen = xl_wrapper.generate(start_tokens=val_chunk_torch, seq_len=max_seq_len*2, eos_token=0, temperature=1.0)
-        print(gen)
-        midif = ngt.decode(gen[0].cpu().numpy().tolist())
-        midif.write(f'samples/rt/test_{step}.mid')
-        model.train()
+        # model.eval()
+        # # validate on a random 20 int chunk of random val list
+        # val_list = val_lists[np.random.randint(0, len(val_lists))]
+        # val_chunk_start = np.random.randint(0, len(val_list)-20)
+        # val_chunk = val_list[val_chunk_start:val_chunk_start+20]
+        # val_chunk_torch = torch.tensor(val_chunk).unsqueeze(0).to(device)
+        # gen = xl_wrapper.generate(start_tokens=val_chunk_torch, seq_len=max_seq_len*2, eos_token=0, temperature=1.0)
+        # print(gen)
+        # midif = ngt.decode(gen[0].cpu().numpy().tolist())
+        # midif.write(f'samples/rt/test_{step}.mid')
+        # model.train()
 
-torch.save(model.state_dict(), f"weights/rhythm_transformer_{max_seq_len}_{max_mem_len}.pt")
+torch.save(model.state_dict(), f"archive/rhythmtransformer_{max_seq_len}_{max_mem_len}.pt")

@@ -3,7 +3,7 @@ import torch.optim as optim
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
 
-from models.papers.vogl_2017 import DrumRBM
+from models.papers import DrumRBM
 
 device = "mps"
 drbm = DrumRBM().to(device)
@@ -50,4 +50,4 @@ for epoch in range(2000):
         print(f"E:{epoch}, I:{i}, Loss: {loss.item()}", end='\r')
     print(f"E:{epoch}, Loss: {loss.item()}")
 # save
-torch.save(drbm.state_dict(), f'weights/drbm_{epoch}.pt')
+torch.save(drbm.state_dict(), f'archive/drbm_{epoch}.pt')

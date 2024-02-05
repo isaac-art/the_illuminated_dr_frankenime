@@ -1,1 +1,0 @@
-BASE_SERVER = "https://mml.thanks.fish"

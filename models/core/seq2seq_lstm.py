@@ -4,46 +4,60 @@ import torch.nn.functional as F
 
 
 class Seq2SeqBiLSTM(nn.Module):
-    def __init__(self, vocab_size, embed_size, hidden_size, dropout=0.5, bidirectional=True):
+    def __init__(self, vocab_size:int, embed_size:int, hidden_size:int, dropout:float=0.5, bidirectional:bool=True):
         super(Seq2SeqBiLSTM, self).__init__()
-        self.bidi=bidirectional
+        self.bidirectional=bidirectional
         self.embedding = nn.Embedding(vocab_size, embed_size)
-        self.encoder = nn.LSTM(embed_size, hidden_size, bidirectional=self.bidi, batch_first=True)
-        self.encoder_bn = nn.BatchNorm1d(hidden_size * 2 if self.bidi else hidden_size)  # Batch Norm for encoder
-        self.encoder_drop = nn.Dropout(dropout)
-        self.decoder = nn.LSTM(embed_size, 2 * hidden_size if self.bidi else hidden_size, batch_first=True)
-        self.decoder_bn = nn.BatchNorm1d(hidden_size * 2 if self.bidi else hidden_size)  # Batch Norm for decoder
-        self.decoder_drop = nn.Dropout(dropout)
-        self.fc = nn.Linear(2 * hidden_size if self.bidi else hidden_size, vocab_size)
-        self.relu = nn.ReLU() #added
+        self.hidden_size = hidden_size
+        lstm_hidden_size = 2 * hidden_size if self.bidirectional else hidden_size
+
+        self.encoder = nn.LSTM(embed_size, hidden_size, bidirectional=self.bidirectional, batch_first=True)
+        self.encoder_layers = self._build_layers(hidden_size, lstm_hidden_size, dropout)
+
+        self.decoder = nn.LSTM(embed_size, lstm_hidden_size, batch_first=True)
+        self.decoder_layers = self._build_layers(hidden_size, lstm_hidden_size, dropout)
+
+        self.fc = nn.Linear(lstm_hidden_size, vocab_size)
+        self.relu = nn.ReLU()
+
         self.softmax = nn.LogSoftmax(dim=2)
 
-    def forward(self, x, target=None, teacher_forcing_ratio=0.5):
-        x_embed = self.embedding(x)
-        _, (hn, _) = self.encoder(x_embed)
-        if self.bidi: hn = torch.cat((hn[0:1], hn[1:2]), dim=2) # because bidi we concat
+    def _build_layers(self, hidden_size: int, lstm_hidden_size: int, dropout: float) -> nn.Sequential:
+        return nn.Sequential(
+            nn.BatchNorm1d(lstm_hidden_size),
+            nn.Dropout(dropout),
+            nn.ReLU()
+        )
 
-        hn = self.encoder_bn(hn.squeeze(0)).unsqueeze(0)
-        hn = self.encoder_drop(hn)
-        hn = self.relu(hn)
-
+    def forward(self, x: torch.Tensor, target: torch.Tensor = None, teacher_forcing_ratio: float = 0.5) -> torch.Tensor:
         batch_size, seq_len = x.size()
         outputs = torch.zeros(batch_size, seq_len, self.fc.out_features).to(x.device)
+
+        x_embed = self.embedding(x)
+        _, (hn, _) = self.encoder(x_embed)
+        hn = self._handle_bidirectional(hn)
+
         dec_input = x[:, 0].unsqueeze(1)
         hidden_state = (hn, torch.zeros_like(hn))
+        
         for t in range(1, seq_len):
-            dec_embed = self.embedding(dec_input)
-            output, hidden_state = self.decoder(dec_embed, hidden_state)
-            
-            output = self.decoder_bn(output.squeeze(1)).unsqueeze(1)
-            output = self.decoder_drop(output)
-            output = self.relu(output)
-
-            output = self.fc(output)
-            # output = self.softmax(output)
-            outputs[:, t] = output.squeeze(1)
-
-            use_teacher_forcing = True if torch.rand(1).item() < teacher_forcing_ratio else False
-            if use_teacher_forcing and target is not None: dec_input = target[:, t].unsqueeze(1)
-            else: dec_input = output.argmax(dim=2)
+            dec_input, hidden_state = self._decode_step(dec_input, hidden_state, outputs, t)
+            use_teacher_forcing = torch.rand(1).item() < teacher_forcing_ratio
+            if use_teacher_forcing and target is not None:
+                dec_input = target[:, t].unsqueeze(1)
+            else:
+                dec_input = outputs[:, t].argmax(dim=1).unsqueeze(1)
         return outputs
+    
+    def _handle_bidirectional(self, hn: torch.Tensor) -> torch.Tensor:
+        if self.bidirectional:
+            hn = torch.cat((hn[0:1], hn[1:2]), dim=2)
+        return self.encoder_layers(hn.squeeze(0)).unsqueeze(0)
+
+    def _decode_step(self, dec_input: torch.Tensor, hidden_state: torch.Tensor, outputs: torch.Tensor, t: int) -> tuple:
+        dec_embed = self.embedding(dec_input)
+        output, hidden_state = self.decoder(dec_embed, hidden_state)
+        output = self.decoder_layers(output.squeeze(1)).unsqueeze(1)
+        output = self.fc(self.relu(output))
+        outputs[:, t] = output.squeeze(1)
+        return dec_input, hidden_state

@@ -1,21 +1,10 @@
-# One barrier that has inhibited music generation models from being 
-# put to use in the same way as gesture mapping, however, is the size 
-# of datasets and expense of computational resources needed to train them, 
-# which prevents users from choosing and manipulating their own training data. 
-
-# chunk into 1-measure drum loops
-    # split into 
-        # 1) drum score and quantized
-        # 2) tapped groove and squashed
-    # so one side holds timing and the other notes
 import os
 import numpy as np
 
 from utils.data import GillickDataMaker
 
-
 if __name__ == "__main__":
-  
+    print("WHAT HOW PLAY VAE: Prepare Data")
     gdm = GillickDataMaker()  
 
     # # SAMPLES
@@ -28,13 +17,16 @@ if __name__ == "__main__":
     # midiout.dump('samples/whp/timings.mid')
     # midiout = gdm.decode(timings=timings)
     # midiout.dump('samples/whp/notes.mid')
-    
+
     mididir = '/Users/isaac/Library/CloudStorage/Dropbox/nime_ml/gen_dnn_implementations/_datasets/groove/'
     full_notes = []
     full_timings = []
     for root, dirs, files in os.walk(mididir):
         for file in files:
             if file.endswith('.mid') or file.endswith('.midi'):
+                # check file has 4-4 in name
+                if '4-4' not in file:
+                    continue
                 notes, timings = gdm.encode(os.path.join(root, file))
                 full_notes.append(notes)
                 full_timings.append(timings)

@@ -64,26 +64,24 @@ for idx, seq in enumerate(inputs):
             # print("-"*120)
 
 # create augmentations (reverse, transpose)
-augmented_inputs = []
-augmented_targets = []
-for idx, seq in enumerate(out_inputs):
-    # apply to every 5th seq
-    if idx % 5 == 0:
-        # reverse
-        reversed_input = seq[::-1]
-        reversed_target = out_targets[idx][::-1]
-        augmented_inputs.append(reversed_input)
-        augmented_targets.append(reversed_target)
-        # transpose (change any number not 129 or 128 by +-(0,12))
-        dist = np.random.randint(-12, 13)  # include 12
-        transposed_input = np.where(np.logical_or(seq == 129, seq == 128), seq, seq + dist)
-        transposed_target = np.where(np.logical_or(out_targets[idx] == 129, out_targets[idx] == 128), out_targets[idx], out_targets[idx] + dist)
-        augmented_inputs.append(transposed_input)
-        augmented_targets.append(transposed_target)
-
-
-out_inputs = out_inputs + augmented_inputs
-out_targets = out_targets + augmented_targets
+# augmented_inputs = []
+# augmented_targets = []
+# for idx, seq in enumerate(out_inputs):
+#     # apply to every 5th seq
+#     if idx % 5 == 0:
+#         # reverse
+#         reversed_input = seq[::-1]
+#         reversed_target = out_targets[idx][::-1]
+#         augmented_inputs.append(reversed_input)
+#         augmented_targets.append(reversed_target)
+#         # transpose (change any number not 129 or 128 by +-(0,12))
+#         dist = np.random.randint(-12, 13)  # include 12
+#         transposed_input = np.where(np.logical_or(seq == 129, seq == 128), seq, seq + dist)
+#         transposed_target = np.where(np.logical_or(out_targets[idx] == 129, out_targets[idx] == 128), out_targets[idx], out_targets[idx] + dist)
+#         augmented_inputs.append(transposed_input)
+#         augmented_targets.append(transposed_target)
+# out_inputs = out_inputs + augmented_inputs
+# out_targets = out_targets + augmented_targets
 
 out_inputs = np.array(out_inputs)
 out_targets = np.array(out_targets)

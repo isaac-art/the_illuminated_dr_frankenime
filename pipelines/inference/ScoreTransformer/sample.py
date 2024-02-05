@@ -4,7 +4,7 @@ from pathlib import Path
 from miditoolkit import MidiFile
 from miditok import MIDILike, TokenizerConfig
 
-from models.papers.lupker_2021 import ScoreTransformer
+from models.papers import ScoreTransformer
 from utils.inference.transformer_utils import top_k_top_p_filtering
 
 
@@ -15,7 +15,7 @@ tokenizer = MIDILike(params=Path(f"datasets/lupker_maestro_midi_{max_seq_len}.js
 
 device = 'mps'
 model = ScoreTransformer(num_tokens=vocab_size, max_seq_len=max_seq_len).to(device)
-model.load_state_dict(torch.load(f'weights/score_transformer_{max_seq_len}_78000.pth', map_location=torch.device(device)))
+model.load_state_dict(torch.load(f'archive/scoretransformer_submission.pth', map_location=torch.device(device)))
 model.eval()
 
 

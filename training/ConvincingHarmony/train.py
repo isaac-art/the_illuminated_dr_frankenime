@@ -45,7 +45,7 @@ print(model)
 optimizer = optim.Adam(model.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss()
 tf = 0.1
-load_e = 16000
+load_e = 0
 if load_e > 0: model.load_state_dict(torch.load(f"weights/ch_{load_e}.pt"))
 # BEGIN TRAINING
 for epoch in range(load_e, n_epochs):
@@ -87,7 +87,7 @@ for epoch in range(load_e, n_epochs):
     # tf = tf * 0.99 # gradually reduce teacher forcing ratio
     if epoch % 100 == 0:
         # save
-        torch.save(model.state_dict(), f"weights/ch_{epoch}.pt")
+        torch.save(model.state_dict(), f"archive/ch_{epoch}.pt")
         # VALIDATION
         with torch.no_grad():
             model.eval()
@@ -118,4 +118,4 @@ for epoch in range(load_e, n_epochs):
     if vali_loss > train_loss * 5:
         print("Validation loss is too high, exiting")
         break
-torch.save(model.state_dict(), f"weights/ch_{epoch}.pt")
+torch.save(model.state_dict(), f"archive/ch_{epoch}.pt")

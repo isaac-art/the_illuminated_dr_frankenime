@@ -44,3 +44,5 @@ class DrumRBM(BaseModel):
         for i in range(n):
             visible_prob, visible, hidden_prob, hidden = self.forward(z)
         return visible_prob, visible, hidden_prob, hidden
+    
+    

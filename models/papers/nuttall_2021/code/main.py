@@ -4,7 +4,7 @@ from models.core import BaseModel
 from x_transformers import TransformerWrapper, Decoder
 
 class RhythmTransformerXL(BaseModel):
-    def __init__(self, num_tokens=40, max_seq_len=64, max_mem_len=128,
+    def __init__(self, num_tokens=40, max_seq_len=96, max_mem_len=144,
             d_model=512, depth=6, nhead=8):
         super(RhythmTransformerXL, self).__init__()
         self.num_tokens = num_tokens
@@ -26,6 +26,8 @@ class RhythmTransformerXL(BaseModel):
             )
         )
 
-    def forward(self, x, mems=False, return_mems=True):
-        if mems: return self.model_xl(x, mems=mems, return_mems=return_mems)
-        else: return self.model_xl(x, return_mems=return_mems)
+    def forward(self, x, mems=False, return_mems=True, *args, **kwargs):
+        if mems: 
+            return self.model_xl(x, mems=mems, return_mems=return_mems, *args, **kwargs)
+        else: 
+            return self.model_xl(x, return_mems=return_mems, *args, **kwargs)

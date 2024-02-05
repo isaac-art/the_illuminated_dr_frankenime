@@ -6,12 +6,12 @@ import numpy as np
 import gradio as gr
 
 from utils.data import BachDuetData, join_midi
-from models.papers.benatatos_2020 import BachDuet
+from models.papers import BachDuet
 
 device = "mps"
 bdd = BachDuetData()
 model = BachDuet().to(device)
-model.load_state_dict(torch.load("weights/bachduet_32_350.pt", map_location=device))
+model.load_state_dict(torch.load("archive/bachduet_submission.pt", map_location=device))
 model.eval()
 
 def process(input, temp=0.9):

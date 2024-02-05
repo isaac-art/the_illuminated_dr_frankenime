@@ -5,12 +5,12 @@ import tempfile
 import numpy as np
 import gradio as gr
 
-from models.papers.gillick_2021 import WhatHowPlayAuxiliaryVAE
+from models.papers import WhatHowPlayAuxiliaryVAE
 from utils.data import GillickDataMaker
 
 device = 'mps'
 model = WhatHowPlayAuxiliaryVAE().to(device)
-weights = f"weights/whathowplayauxvae_9900.pt" 
+weights = f"archive/whathowplayauxvae_submission.pt" 
 model.load_state_dict(torch.load(weights, map_location=torch.device(device)))
 model.eval()
 gdm = GillickDataMaker()

@@ -23,7 +23,7 @@ tokenizer = MIDILike(config)
 
 maestro_dir = '/Users/isaac/Library/CloudStorage/Dropbox/nime_ml/gen_dnn_implementations/_datasets/maestro-v3.0.0/'
 
-chunk = False
+chunk = True
 seq_len = 256
 tokenised = []
 file_count = 0

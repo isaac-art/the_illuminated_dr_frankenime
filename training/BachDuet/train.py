@@ -4,7 +4,7 @@ from tqdm import tqdm
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
 
-from models.papers.benatatos_2020 import BachDuet
+from models.papers import BachDuet
 from utils.training import make_deterministic
 from utils.data import BachDuetData
 
@@ -66,7 +66,7 @@ for i in tqdm(range(n_epochs)):
     train_loss = loss.item()
     if i % 50 == 0 and i != 0:
         # save model
-        torch.save(model.state_dict(), f"weights/bachduet_32_{i}.pt")
+        torch.save(model.state_dict(), f"archive/bachduet_32_{i}.pt")
         # test model
         with torch.no_grad():
             model.eval()
@@ -91,4 +91,4 @@ for i in tqdm(range(n_epochs)):
                 opt = Adam(model.parameters(), lr=lr)
                 print("Reducing lr to", lr)
     print("-"*120)
-torch.save(model.state_dict(), f"weights/bachduet_32_{i}.pt")
+torch.save(model.state_dict(), f"archive/bachduet_32_{i}.pt")

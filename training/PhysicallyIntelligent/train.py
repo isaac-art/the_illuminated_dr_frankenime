@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import torch.optim as optim
 
-from models.papers.naess_2019 import PhysicallyIntelligentRNN
+from models.papers import PhysicallyIntelligentRNN
 
 device = "mps"
 batch_size = 128
@@ -25,9 +25,9 @@ optimizer = optim.Adam(model.parameters(), lr=1e-3)
 criterion = torch.nn.CrossEntropyLoss()
 
 epochs = 1000
-start_epoch = 100
+start_epoch = 0
 if start_epoch > 0:
-    model.load_state_dict(torch.load(f"weights/pii_{start_epoch}.pt", map_location=device))
+    model.load_state_dict(torch.load(f"archive/pii_{start_epoch}.pt", map_location=device))
 for epoch in range(start_epoch, epochs):
     for batch_idx, data_batch in enumerate(train_loader):
         optimizer.zero_grad()
@@ -41,7 +41,7 @@ for epoch in range(start_epoch, epochs):
         print("Epoch: {} Batch: {} Loss: {}".format(epoch, batch_idx, loss.item()), end="\r")
     print("Epoch: {} Loss: {}".format(epoch,    loss.item()))
     if epoch % 50 == 0:
-        torch.save(model.state_dict(), f"weights/pii_{epoch}.pt")
+        torch.save(model.state_dict(), f"archive/pii_{epoch}.pt")
         # validation
         with torch.no_grad():
             model.eval()
@@ -57,4 +57,4 @@ for epoch in range(start_epoch, epochs):
         # if validation loss is too far from training loss, then we are overfitting
         if loss.item() > 1.5:
             break 
-torch.save(model.state_dict(), f"weights/pii_{epoch}.pt")
+torch.save(model.state_dict(), f"archive/pii_{epoch}.pt")

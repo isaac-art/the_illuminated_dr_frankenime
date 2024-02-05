@@ -23,6 +23,9 @@ with open(groove_data, newline='') as csvfile:
         bpm = row['bpm'] # 
         midi = row['midi_filename'] #
         f = os.path.join(root, midi)
+        if '4-4' not in f: 
+            print("skipping", f)
+            continue
         tokens = ngt.encode(f)
         if split == 'test':
             test.append(ngt.sequence_division_token)

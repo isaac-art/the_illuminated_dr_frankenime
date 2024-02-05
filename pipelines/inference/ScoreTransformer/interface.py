@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from miditoolkit import MidiFile
 from miditok import MIDILike, TokenizerConfig
 
-from models.papers.lupker_2021 import ScoreTransformer
+from models.papers import ScoreTransformer
 from utils.inference.transformer_utils import top_k_top_p_filtering
 
 device = 'mps'
@@ -16,7 +16,7 @@ vocab_size = 245
 max_seq_len = 256
 tokenizer = MIDILike(params=Path(f"datasets/lupker_maestro_midi_{max_seq_len}.json"))
 model = ScoreTransformer(num_tokens=vocab_size, max_seq_len=max_seq_len).to(device)
-model.load_state_dict(torch.load(f'weights/score_transformer_{max_seq_len}.pth', map_location=torch.device(device))) #_78000
+model.load_state_dict(torch.load(f'archive/scoretransformer_submission.pt', map_location=torch.device(device))) #_78000
 model.eval()
 
 def process_midi(input_midi, temp=0.9, top_k=35, top_p=0.9, seq_len=512, num_prime_tokens=256, include_prime=True):

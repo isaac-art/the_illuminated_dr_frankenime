@@ -11,18 +11,9 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 from utils.general import p_
 from utils.data import GillickDataMaker
 from utils.training import make_deterministic, vae_loss_bce, vae_loss_mse, vae_freebits_loss_bce, vae_freebits_loss_mse
-from models.papers.gillick_2021 import WhatHowPlayAuxiliaryVAE, WhatHowPlayVAE
+from models.papers import WhatHowPlayAuxiliaryVAE
 
-make_deterministic()
 p_()
-
-# the Score and Groove inputs to this model are each 
-# encoded (in this case with bidirectional LSTM encoders) 
-# into separate latent variables Z1 and Z2 , which are both 
-# independently trained to match standard normal distributions; 
-# following Roberts et al.[32], we train using the free bits 
-# method (hyper-parameters to balance the two loss terms in a VAE) 
-# with a tolerance of 48 bits.
 
 notes = np.load('datasets/gillick_notes.npy') # (11627, 32, 9)  (measures, 16ths, drum(0,1))
 timings = np.load('datasets/gillick_timings.npy') # (11627, 32, 18) (measures, 16ths, 9timings(0.0,1.0) 9offsets(-0.5,0.5))
@@ -95,6 +86,6 @@ for epoch in range(epochs):
     print(f'Epoch: {epoch}, Batch: {batch_idx+1}/{len(train_loader)}, Average Loss: {avg_loss}')
     # save epoch
     if epoch % 100 == 0:
-        torch.save(model.state_dict(), f'weights/whathowplayauxvae_{epoch}_{avg_loss}.pt')
+        torch.save(model.state_dict(), f'archive/whathowplayauxvae_{epoch}_{avg_loss}.pt')
     
-torch.save(model.state_dict(), f'weights/whathowplayauxvae.pt')
+torch.save(model.state_dict(), f'archive/whathowplayauxvae.pt')
